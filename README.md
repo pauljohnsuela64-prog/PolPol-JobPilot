@@ -130,3 +130,21 @@ The migrations only add tables. If you temporarily run an earlier version, leave
 - The React dashboard sends requests to FastAPI through Vite's local proxy.
 - PostgreSQL stores the role details in `jobs` and its stage in `applications`. Each application row points to one job by ID.
 - FastAPI validates the form input before writing to PostgreSQL. A transaction groups the two inserts so they succeed or roll back together.
+
+## Phase 4 compatibility
+
+Open Job Discovery and choose **Best matches first**, then **Apply filters**. Open **Compatibility details** on a posting to see the evidence. JobPilot recalculates scores locally using the current profile each time results load. Phase 4 uses the existing Windows startup commands, dependencies and tables.
+
+Title carries 25 points, skills 30, experience level 15, location 10, work arrangement 10 and salary 10. The score is the percentage of applicable weight supported by matching evidence. Unset preferences are excluded, except that explicit posting skills can always be compared with confirmed skills. Unknowns and mismatches earn zero points. Skills earn proportional credit for the share of recognized required or preferred skills that you confirmed. Both categories have equal weight. Evidence confidence measures resolved weight out of all 100 points, including confirmed mismatches. A single matching title can therefore score 100 with only 25% evidence confidence. Neither measure estimates your chance of getting hired.
+
+The matcher recognizes whole skill names, saved skill phrases and selected aliases such as JS and Postgres. Explicit headings and adjacent qualifiers distinguish required and preferred skills. Other mentions are shown for context. Unverified skills are possible gaps to check against the original posting. Years of experience in the description are shown as evidence; your saved experience level describes the roles you prefer. Resume contents are unused. Normalized descriptions can lose formatting and these rules can miss qualifications.
+
+Best matches first ranks by score multiplied by evidence confidence. Highest score ranks by score, then confidence. Date sorts use the discovery or last-seen timestamp. Ties use the listing ID. All sorts apply to the filtered results before the 50-job page is selected.
+
+### Manual Phase 4 checks
+
+- [ ] Save a skill and a preferred title under Profile, then open Job Discovery and expand Compatibility details.
+- [ ] Compare the excerpt with the original posting. Check the labels for confirmed, unverified, mentioned and missing evidence.
+- [ ] Switch between all four sorts with Apply filters. Check a second page when available.
+- [ ] Change a preference, revisit Discovery, and verify that the score updates. Save a listing and check its Dashboard stage.
+- [ ] Repeat at a phone width. Use the Windows backend test and frontend build commands above for automated checks.
