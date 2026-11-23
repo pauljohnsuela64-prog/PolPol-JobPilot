@@ -1,0 +1,70 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #19223a;
+  background: #f7f8fc;
+  font-synthesis: none;
+  --accent: #4038a6;
+  --muted: #526075;
+  --border: #dce1ed;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+.wrap { width: min(1120px, calc(100% - 48px)); margin-inline: auto; }
+.top { background: #fff; border-bottom: 1px solid var(--border); }
+.bar { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 7px; font-size: 20px; font-weight: 760; letter-spacing: -.045em; }
+.brand > span:last-child { color: var(--accent); }
+.mark { display: grid; place-items: center; width: 36px; height: 36px; margin-right: 4px; background: #4038a6; color: white; border-radius: 10px; }
+.local { color: #315e4e; background: #eaf5ef; border-radius: 999px; padding: 6px 12px; font-size: .8rem; font-weight: 650; white-space: nowrap; }
+main { padding-block: 42px 56px; }
+.intro, .panel-head, .jobs li { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.intro { margin-bottom: 26px; }
+h1 { margin: 0; font-size: clamp(1.85rem, 5vw, 2.75rem); letter-spacing: -.055em; line-height: 1.08; }
+h2 { margin: 0; font-size: 1.25rem; letter-spacing: -.025em; }
+p { margin: 6px 0 0; color: var(--muted); }
+button, input, select { font: inherit; }
+button, select, input { color: inherit; border: 1px solid var(--border); border-radius: 8px; background: white; min-height: 42px; padding: 8px 12px; }
+button, select { cursor: pointer; }
+button:disabled, select:disabled { opacity: .65; cursor: default; }
+:focus-visible { outline: 3px solid #655ed5; outline-offset: 2px; }
+.primary { background: var(--accent); border-color: var(--accent); color: white; padding-inline: 17px; font-weight: 650; white-space: nowrap; }
+.primary:hover:not(:disabled) { background: #322a91; }
+.panel, .stat { background: white; border: 1px solid var(--border); border-radius: 15px; }
+.stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
+.stat { padding: 16px; }
+.stat span { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .875rem; }
+.stat strong { display: block; margin-top: 6px; font-size: 1.8rem; }
+.stat.total { background: #edeaff; border-color: #dad4ff; }
+.total strong, .total span { color: #382f87; }
+.stat i { width: 8px; height: 8px; border-radius: 50%; background: #687894; }
+.stat i.applied { background: #3360a5; }
+.stat i.interview { background: #986207; }
+.stat i.offer { background: #207650; }
+.stat i.closed { background: #855f78; }
+.panel-head { padding: 17px 20px; border-bottom: 1px solid var(--border); }
+.filter { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .875rem; }
+.empty { padding: 48px 16px; text-align: center; }
+.jobs { margin: 0; padding: 0; list-style: none; }
+.jobs li { padding: 15px 20px; }
+.jobs li + li { border-top: 1px solid var(--border); }
+.job-text { min-width: 0; overflow-wrap: anywhere; }
+.stage { flex-shrink: 0; }
+.stage.applied { background: #edf3ff; }
+.stage.interview { background: #fff4dc; }
+.stage.offer { background: #eaf5ef; }
+.stage.closed { background: #f6edf4; }
+.form { padding: 20px; margin-bottom: 16px; }
+.fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-block: 14px; }
+.fields label { display: grid; align-content: start; gap: 5px; font-size: .9rem; }
+.fields label span { display: inline; color: var(--muted); }
+.fields input { width: 100%; }
+.error { margin: 0 0 16px; padding: 12px 16px; background: #fdebec; color: #8c2533; border-radius: 8px; }
+@media (max-width: 780px) { .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 530px) {
+  .wrap { width: calc(100% - 28px); }
+  main { padding-top: 28px; }
+  .intro { align-items: flex-start; flex-direction: column; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .fields { grid-template-columns: 1fr; }
+  .panel-head, .jobs li { padding-inline: 12px; gap: 8px; }
+}
