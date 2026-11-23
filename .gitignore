@@ -1,0 +1,13 @@
+.venv/
+.test-postgres/
+__pycache__/
+.pytest_cache/
+node_modules/
+dist/
+.env
+
+# Additional environment files and secrets
+.env.*
+!.env.example
+*.pem
+*.key
