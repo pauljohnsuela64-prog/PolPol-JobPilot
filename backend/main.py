@@ -1,14 +1,16 @@
-import os
 from datetime import datetime
 from typing import Annotated, Literal
 
 import psycopg
 from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.responses import JSONResponse
-from psycopg.rows import dict_row
 from pydantic import BaseModel, StringConstraints
 
+from database import database
+from profile_routes import router as profile_router
+
 app = FastAPI(title="PolPol JobPilot", docs_url=None, redoc_url=None)
+app.include_router(profile_router)
 
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 OptionalText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]
@@ -29,14 +31,6 @@ class ApplicationUpdate(BaseModel):
 class TrackedJob(NewJob, ApplicationUpdate):
     job_id: int
     created_at: datetime
-
-
-def database():
-    """Open a connection whose context manager commits on success and rolls back on error."""
-    url = os.getenv("DATABASE_URL")
-    if not url:
-        raise HTTPException(503, "Set DATABASE_URL to connect to your local database.")
-    return psycopg.connect(url, row_factory=dict_row, connect_timeout=3)
 
 
 @app.exception_handler(psycopg.Error)

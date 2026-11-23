@@ -1,6 +1,6 @@
 # PolPol JobPilot
 
-PolPol JobPilot is a local job application tracker. Add roles by hand, filter by stage, and update each stage as your search progresses. The dashboard and API run on your PC, and records are stored in your local PostgreSQL database.
+PolPol JobPilot is a local job application tracker. Add roles by hand, filter by stage, and update each stage as your search progresses. Use Profile / Preferences to save your job-search preferences and manage one resume. The dashboard and API run on your PC.
 
 ## Run on Windows
 
@@ -15,7 +15,7 @@ $psql = 'C:\Program Files\PostgreSQL\18\bin\psql.exe'
 & $psql -h 127.0.0.1 -U postgres -d postgres
 ```
 
-At the `psql` prompt, create a dedicated local user and database. The password command prompts for a new password without putting it in shell history.
+For a new installation, create a dedicated local user and database at the `psql` prompt. If you already have a Phase 1 database, keep it and skip the user and database creation. The password command prompts for a new password without putting it in shell history.
 
 ```sql
 CREATE ROLE jobpilot LOGIN;
@@ -24,15 +24,16 @@ CREATE DATABASE jobpilot OWNER jobpilot;
 \q
 ```
 
-Initialize the tables once. The schema script is safe to run again for the Phase 1 schema.
+From the project folder, initialize the Phase 1 tables and apply the Phase 2 migration to the same database. Both commands are safe to rerun, including on an existing Phase 1 database. Use your existing database and role names if they differ.
 
 ```powershell
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\schema.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\002_profile.sql
 ```
 
 ### Start the API
 
-In PowerShell, create a virtual environment so this project's Python packages are kept separate from other projects. Enter the same `jobpilot` password when prompted. Keep this terminal open.
+Open PowerShell in the project folder. Create the virtual environment on your first run. Run the install command when upgrading from Phase 1 so the local PDF parser is available. Enter your `jobpilot` password when prompted and leave this window open.
 
 ```powershell
 python -m venv .venv
@@ -45,7 +46,7 @@ Set-Location backend
 ..\.venv\Scripts\python.exe -m uvicorn main:app --host 127.0.0.1 --port 8000
 ```
 
-Check the API at [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health). It returns `{"status":"ok"}` when FastAPI is responding. Opening the dashboard checks the database connection.
+Check the API at [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health). It returns `{"status":"ok"}` when FastAPI is responding. The dashboard and Profile page check that the database is available. If they report a schema problem after upgrading, apply the Phase 2 migration and refresh.
 
 ### Start the dashboard
 
@@ -57,7 +58,7 @@ npm.cmd ci
 npm.cmd run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173), select **Add job**, and enter a title and company. A new record starts at **Saved**. Use the dropdown beside the job to change its stage. Press Ctrl+C in each terminal to stop the servers. PostgreSQL keeps your data between sessions.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in Edge. Choose **Dashboard** to manage jobs or **Profile / Preferences** to edit your profile. Press **Ctrl+C** in both terminal windows to stop the app. To restart, repeat the API password prompt and startup commands, then run `npm.cmd run dev` from `frontend`. You can skip the install commands on later starts.
 
 ## Run the checks
 
@@ -70,7 +71,24 @@ Set-Location ..\frontend
 npm.cmd run build
 ```
 
-The health and validation tests run without PostgreSQL. To include the create, update, and list workflow, create a separate test database owned by `jobpilot`, apply `backend/schema.sql` to it, and set `DATABASE_URL` to that database in the test terminal before running pytest. The workflow removes the job it creates.
+The health and validation tests run without PostgreSQL. To run the full workflows, create a disposable test database owned by `jobpilot`. Apply both SQL scripts to it as shown above, using the test database name. Set `DATABASE_URL` to the test connection string and then run `$env:JOBPILOT_TEST_DATABASE_URL = $env:DATABASE_URL` in the same terminal before pytest. The integration tests write preferences and resume metadata, so use a separate database from your real profile.
+
+## Manual acceptance checklist
+
+- [ ] Open **Dashboard** and check that your Phase 1 records and stages are present. Add a test job, change its stage, and filter to that stage.
+- [ ] Open **Profile / Preferences**. Add two job titles using **Add title**, enter multiple locations and skills on separate lines, choose an arrangement and experience level, and enter a salary in PHP (for example, 30000).
+- [ ] Click **Save preferences** and confirm the success message. Refresh the page, then stop and restart the API and confirm the preferences are still there.
+- [ ] Upload a PDF smaller than 5 MB. Confirm the filename and upload date. Replace it with a different PDF and check the new filename. Delete it and confirm that the page says there is no resume.
+- [ ] Try uploading a text file renamed to `.pdf` and a file larger than 5 MB. Confirm that both are rejected and that any previously saved resume remains listed.
+- [ ] Resize the browser to a phone-width window and confirm that both pages remain usable.
+
+## Local resume storage
+
+The app accepts one readable, unencrypted PDF at a time, up to 5 MB (5,242,880 bytes). On Windows, resume files are stored in `%LOCALAPPDATA%\PolPolJobPilot\resumes`. The API can use a different directory through `JOBPILOT_RESUME_DIR`. Keep that directory outside the project and use the same setting on each restart.
+
+The Profile page reads the filename and upload date from PostgreSQL. Resume files use generated names and are accessible through the local folder. The app has no file download route. Moving the database alone preserves metadata, so keep the resume directory with the database if you move this installation.
+
+The migration only adds the profile table. If you switch back to Phase 1 code, leave the table in place so you can resume using Phase 2 later.
 
 ## How the parts fit together
 
