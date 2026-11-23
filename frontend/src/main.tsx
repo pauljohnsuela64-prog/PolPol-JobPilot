@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client';
 import { request } from './api';
 import { Profile } from './Profile';
+import { Discovery } from './Discovery';
 import './style.css';
 
 const stages = {
@@ -143,11 +144,11 @@ function Dashboard() {
 }
 
 function App() {
-  const [profile, setProfile] = useState(() => window.location.hash === '#profile');
+  const [route, setRoute] = useState(() => window.location.hash);
 
   // Hash links support browser Back and direct access without adding a router.
   useEffect(() => {
-    const navigate = () => setProfile(window.location.hash === '#profile');
+    const navigate = () => setRoute(window.location.hash);
     window.addEventListener('hashchange', navigate);
     return () => window.removeEventListener('hashchange', navigate);
   }, []);
@@ -158,13 +159,14 @@ function App() {
         <div className="wrap bar">
           <div className="brand"><span className="mark" aria-hidden="true">P</span> PolPol <span>JobPilot</span></div>
           <nav className="navigation" aria-label="Main navigation">
-            <a href="#dashboard" aria-current={profile ? undefined : 'page'}>Dashboard</a>
-            <a href="#profile" aria-current={profile ? 'page' : undefined}>Profile / Preferences</a>
+            <a href="#dashboard" aria-current={route !== '#profile' && route !== '#discovery' ? 'page' : undefined}>Dashboard</a>
+            <a href="#profile" aria-current={route === '#profile' ? 'page' : undefined}>Profile / Preferences</a>
+            <a href="#discovery" aria-current={route === '#discovery' ? 'page' : undefined}>Job Discovery</a>
           </nav>
           <span className="local">Local workspace</span>
         </div>
       </header>
-      {profile ? <Profile /> : <Dashboard />}
+      {route === '#discovery' ? <Discovery /> : route === '#profile' ? <Profile /> : <Dashboard />}
     </>
   );
 }
