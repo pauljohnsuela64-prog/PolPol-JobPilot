@@ -6,11 +6,13 @@ from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, StringConstraints
 
-from database import database
+from database import database, track_job
+from discovery_routes import router as discovery_router
 from profile_routes import router as profile_router
 
 app = FastAPI(title="PolPol JobPilot", docs_url=None, redoc_url=None)
 app.include_router(profile_router)
+app.include_router(discovery_router)
 
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 OptionalText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]
@@ -58,21 +60,8 @@ def list_jobs():
 
 @app.post("/api/jobs", response_model=TrackedJob, status_code=201)
 def create_job(job: NewJob):
-    # Save both rows in one transaction so every tracked job has an application stage.
     with database() as connection:
-        row = connection.execute(
-            """
-            INSERT INTO jobs (title, company, location) VALUES (%s, %s, %s)
-            RETURNING id AS job_id, title, company, location, created_at
-            """,
-            (job.title, job.company, job.location),
-        ).fetchone()
-        application = connection.execute(
-            "INSERT INTO applications (job_id) VALUES (%s) RETURNING status",
-            (row["job_id"],),
-        ).fetchone()
-        return {**row, **application}
-
+        return track_job(connection, job.title, job.company, job.location)
 
 @app.patch("/api/jobs/{job_id}", response_model=TrackedJob)
 def change_stage(job_id: JobId, application: ApplicationUpdate):
