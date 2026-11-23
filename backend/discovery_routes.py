@@ -1,6 +1,9 @@
+from itertools import islice
+
+import heapq
 import re
 import threading
-from typing import Annotated
+from typing import Annotated, Literal
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
@@ -8,7 +11,7 @@ from psycopg.types.json import Jsonb
 from pydantic import BaseModel, StringConstraints
 
 from database import database, track_job
-from job_matching import Match, compare
+from job_matching import Match, compare, compatibility
 from job_providers import BOARD_PATTERN, FeedError, Posting, Provider, fetch_board
 from profile_routes import Preferences
 
@@ -111,8 +114,16 @@ def list_listings(
     q: Annotated[str, Query(max_length=120)] = "",
     provider: Provider | None = None,
     match: Match | None = None,
+    sort: Literal["best", "score", "newest", "recent"] = "best",
     offset: Annotated[int, Query(ge=0, le=2_147_483_647)] = 0,
 ):
+    def rank(row):
+        report = row["compatibility"]
+        if sort == "best":
+            # Combine compatibility with evidence coverage before breaking ties by score.
+            return (report["score"] * report["confidence"], report["score"], row["id"])
+        return (report["score"], report["confidence"], row["id"])
+
     query = q.strip().replace("\x00", "")
     with database() as connection:
         settings = connection.execute("SELECT preferences FROM profile WHERE id = 1").fetchone()
@@ -125,27 +136,25 @@ def list_listings(
                 WHERE (%s::text IS NULL OR provider = %s)
                   AND strpos(lower(concat_ws(' ', posting->>'title', posting->>'company', posting->>'location')),
                              lower(%s)) > 0
-                ORDER BY discovered_at DESC, id DESC
+                ORDER BY CASE WHEN %s = 'recent' THEN last_seen_at ELSE discovered_at END DESC, id DESC
                 """,
-                (provider, provider, query),
+                (provider, provider, query, sort),
             )
-            results = []
-            count = 0
-            has_more = False
-            for row in cursor:
-                post = Posting.model_validate(row.pop("posting"))
-                status, checks = compare(post, preferences)
-                if match is not None and status != match:
-                    continue
-                count += 1
-                if count <= offset:
-                    continue
-                if len(results) == 50:
-                    has_more = True
-                    break
-                results.append({**row, **post.model_dump(exclude={"description", "external_id"}),
-                                "match": status, "checks": checks})
-    return {"jobs": results, "has_more": has_more}
+            def matching_rows():
+                for row in cursor:
+                    post = Posting.model_validate(row.pop("posting"))
+                    status, checks = compare(post, preferences)
+                    if match is not None and status != match:
+                        continue
+                    yield {**row, **post.model_dump(exclude={"description", "external_id"}),
+                                    "compatibility": compatibility(post, preferences, checks), "match": status, "checks": checks}
+
+            # Keep at most the requested prefix in memory. Date sorts already arrive in SQL order.
+            if sort in ("recent", "newest"):
+                results = list(islice(matching_rows(), offset + 51))
+            else:
+                results = heapq.nlargest(offset + 51, matching_rows(), key=rank)
+    return {"jobs": results[offset:offset + 50], "has_more": len(results) > offset + 50}
 
 
 @router.post("/jobs/{listing_id}/save")

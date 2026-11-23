@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { request } from './api';
 
 const providers = { greenhouse: 'Greenhouse', lever: 'Lever', 'lever-eu': 'Lever (EU)' };
@@ -28,6 +28,8 @@ type Listing = {
   discovered_at: string;
   last_seen_at: string;
   tracked_job_id: number | null;
+  compatibility: { score: number; confidence: number; criteria: Record<string, keyof typeof criteria>;
+    skills: { skill: string; confirmed: boolean; context: string; excerpt: string }[]; experience_evidence: string[] };
   match: Match;
   checks: Record<string, keyof typeof criteria>;
 };
@@ -41,6 +43,14 @@ function salaryLabel(salary: Listing['salary']) {
   return salary.currency + ' ' + range + (salary.interval ? ' (' + salary.interval + ')' : ' (pay period not provided)');
 }
 
+function explain(field: string, state: keyof typeof criteria) {
+  if (state === 'missing') return field + ' information is missing from the posting.';
+  if (state === 'uncertain') return field + ' could only be partially verified.';
+  if (field === 'Skills') return 'All recognized required and preferred skills appear in your confirmed skills.';
+  if (state === 'not_match') return field + ' falls outside your saved preference.';
+  return field + ' matches your saved preference.';
+}
+
 function DateLabel({ value, showTime = false }: { value: string | null; showTime?: boolean }) {
   return value ? <time dateTime={value}>{showTime ? new Date(value).toLocaleString() : new Date(value).toLocaleDateString()}</time> : 'Not provided';
 }
@@ -50,7 +60,7 @@ export function Discovery() {
   const [sourcesReady, setSourcesReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState<Page>({ jobs: [], has_more: false });
-  const [filters, setFilters] = useState({ q: '', provider: '', match: '' });
+  const [filters, setFilters] = useState({ q: '', provider: '', match: '', sort: '' });
   const [offset, setOffset] = useState(0);
   const [revision, setRevision] = useState(0);
   const [action, setAction] = useState('');
@@ -148,7 +158,7 @@ export function Discovery() {
     event.preventDefault();
     const fields = new FormData(event.currentTarget);
     setOffset(0);
-    setFilters({ q: String(fields.get('q')).trim(), provider: String(fields.get('provider')), match: String(fields.get('match')) });
+    setFilters({ q: String(fields.get('q')).trim(), provider: String(fields.get('provider')), match: String(fields.get('match')), sort: String(fields.get('sort')) });
   }
 
   return (
@@ -205,13 +215,17 @@ export function Discovery() {
           <label className="profile-field">Preference match
             <select name="match"><option value="">All results</option>{Object.entries(matches).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
           </label>
+          <label className="profile-field">Sort jobs<select name="sort">
+            <option value="best">Best matches first</option><option value="score">Highest compatibility score</option>
+            <option value="newest">Newest discovered</option><option value="recent">Recently seen</option>
+          </select></label>
           <button>Apply filters</button>
         </form>
         {loading && <p className="empty" role="status">Loading discovered jobs...</p>}
         {loadError && <div className="error" role="alert">{loadError} <button onClick={() => setRevision(current => current + 1)}>Retry</button></div>}
         {!loading && !loadError && page.jobs.length === 0 && <div className="panel empty">
-          <strong>{Object.values(filters).some(Boolean) ? 'No jobs match these filters' : 'No jobs discovered yet'}</strong>
-          <p>{Object.values(filters).some(Boolean) ? 'Adjust your filters and try again.' : 'Add an employer career board and select Refresh jobs.'}</p>
+          <strong>{(filters.q || filters.provider || filters.match) ? 'No jobs match these filters' : 'No jobs discovered yet'}</strong>
+          <p>{(filters.q || filters.provider || filters.match) ? 'Adjust your filters and try again.' : 'Add an employer career board and select Refresh jobs.'}</p>
         </div>}
         {!loading && !loadError && <div className="discovery-cards">
           {page.jobs.map(job => <article className="panel discovery-card" key={job.id}>
@@ -219,6 +233,13 @@ export function Discovery() {
               <div><h3>{job.title}</h3><p>{job.company} · {providers[job.provider]}</p></div>
               <span className={'match-label ' + job.match}>{matches[job.match]}</span>
             </div>
+            <p><strong>Compatibility {job.compatibility.score}/100</strong> ? Evidence confidence {job.compatibility.confidence}%</p>
+            <details><summary>Compatibility details</summary>
+              <ul>{Object.entries(job.compatibility.criteria).map(([key, status]) => <li key={key}>{explain(key, status)}</li>)}</ul>
+              {job.compatibility.skills.map(item => <p key={item.skill}><strong>{item.skill}</strong> ? {item.context} ? {item.confirmed ? 'In confirmed skills' : 'Unverified in profile'}<br /><q>{item.excerpt}</q></p>)}
+              {job.compatibility.experience_evidence.map(line => <p key={line}>Experience mentioned: <q>{line}</q></p>)}
+              {!job.compatibility.skills.length && <p>No recognized skill evidence.</p>}
+            </details>
             <dl className="posting-details">
               <div><dt>Location</dt><dd>{job.location ?? 'Not provided'}</dd></div>
               <div><dt>Work arrangement</dt><dd>{job.arrangement ? arrangements[job.arrangement] : 'Not provided'}</dd></div>

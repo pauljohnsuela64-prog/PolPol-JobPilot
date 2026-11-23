@@ -64,3 +64,76 @@ def compare(post: Posting, prefs: Preferences) -> tuple[Match, dict[str, str]]:
         if status in checks.values():
             return status, checks
     return ("match" if checks else "unconfigured"), checks
+
+WEIGHTS = {"Title": 25, "Skills": 30, "Experience": 15, "Location": 10, "Work arrangement": 10, "Salary": 10}
+ALIASES = {
+    "JavaScript": ("JavaScript", "JS"), "PostgreSQL": ("PostgreSQL", "Postgres"),
+    "Python": ("Python",), "Active Directory": ("Active Directory",), "SQL": ("SQL",),
+    "Java": ("Java",), "TypeScript": ("TypeScript",), "React": ("React",),
+    "C++": ("C++",), "C#": ("C#",), "PowerShell": ("PowerShell",),
+}
+YEARS = re.compile(r"\b\d+(?:\s*[-–]\s*\d+)?\+? years?(?: of)? (?:relevant |professional )?experience\b", re.I)
+
+
+def compatibility(post: Posting, prefs: Preferences, checks: dict[str, str]):
+    """Award points for supported preferences. Confidence measures resolved evidence weight."""
+    states = dict(checks)
+    confirmed = {skill.casefold() for skill in prefs.technical_skills}
+    vocabulary = dict(ALIASES)
+    known = {alias.casefold() for aliases in ALIASES.values() for alias in aliases}
+    for skill in prefs.technical_skills:
+        if skill.casefold() not in known and len(skill) >= 3:
+            vocabulary[skill] = (skill,)
+    evidence = {}
+    years = []
+    stated_levels = set()
+    for clause in re.split(r"[;!?\n]|\.\s+|,(?=\s*(?:preferred|required|optional)\b)", post.description):
+        clause = clause.strip()
+        level = re.search(r"\b(?:experience level|seniority)\s*:\s*(junior|entry[ -]level|internship|senior)\b", clause, re.I)
+        if level and not re.search(r"\b(?:or|not)\b", clause, re.I):
+            stated_levels.add(level[1].lower().replace(" ", "-"))
+            years.append(level[0])
+        for occurrence in YEARS.finditer(clause):
+            years.append(occurrence.group())
+        for skill, aliases in vocabulary.items():
+            hit = next((alias for alias in aliases if contains(clause, alias)), None)
+            if not hit:
+                continue
+            context = "mentioned"
+            # Only an explicit heading or an immediate skill qualifier establishes its role.
+            for label, pattern in (("preferred", r"preferred|nice to have|optional"),
+                                   ("required", r"required|mandatory|must have")):
+                if re.search(r"\b(?:not|no|without|or)\b", clause, re.I):
+                    break
+                if (re.match(rf"^(?:{pattern})(?: skills)?\s*:", clause, re.I)
+                        or re.search(rf"(?<!\w){re.escape(hit)}\s+(?:is\s+)?(?:{pattern})\b", clause, re.I)):
+                    context = label
+                    break
+            priority = {"mentioned": 0, "preferred": 1, "required": 2}
+            if skill in evidence and priority[evidence[skill]["context"]] >= priority[context]:
+                continue
+            pos = clause.casefold().find(hit.casefold())
+            evidence[skill] = {"skill": skill, "context": context,
+                               "confirmed": any(alias.casefold() in confirmed for alias in aliases),
+                               "excerpt": clause[max(0, pos-45):pos+95]}
+    if prefs.experience_level and stated_levels:
+        explicit_state = "match" if stated_levels == {prefs.experience_level} else "not_match"
+        title_state = states["Experience"]
+        states["Experience"] = ("uncertain" if len(stated_levels) > 1 or
+                                (title_state in ("match", "not_match") and title_state != explicit_state)
+                                else explicit_state)
+    relevant = [entry for entry in evidence.values() if entry["context"] != "mentioned"]
+    fraction = 0
+    if relevant or prefs.technical_skills:
+        states["Skills"] = "missing" if not evidence else "uncertain"
+        if relevant:
+            fraction = sum(entry["confirmed"] for entry in relevant) / len(relevant)
+            if fraction == 1:
+                states["Skills"] = "match"
+    total = sum(WEIGHTS[key] for key in states)
+    earned = sum(WEIGHTS[key] for key, state in states.items() if state == "match" and key != "Skills")
+    resolved = sum(WEIGHTS[key] for key, state in states.items() if state in ("match", "not_match") and key != "Skills")
+    skill_points = WEIGHTS["Skills"] * fraction
+    return {"score": round(100 * (earned + skill_points) / total) if total else 0,
+            "confidence": round(resolved + skill_points), "criteria": states,
+            "skills": list(evidence.values()), "experience_evidence": list(dict.fromkeys(years))[:3]}

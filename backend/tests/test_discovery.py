@@ -275,3 +275,53 @@ def test_live_public_board(provider, board, company):
         jobs, _ = fetch_board(client, provider, board, company)
     assert jobs
     assert all(job.url.startswith("https://") for job in jobs)
+
+
+def test_compatibility_weights_aliases_and_unverified_skills():
+    from job_matching import compatibility
+
+    post = Posting(external_id="one", company="Example", title="Junior Developer", location="Manila",
+                   arrangement="remote", url="https://example.com/job",
+                   description="Required: JS, Postgres. Preferred: Active Directory. Team uses JavaBeans.",
+                   salary=Salary(currency="PHP", interval="month", minimum=35000, maximum=45000))
+    prefs = Preferences(job_titles=["Developer"], locations=["Manila"], technical_skills=["JavaScript", "PostgreSQL"],
+                        work_arrangement="remote", minimum_salary_php=30000, experience_level="junior")
+    def assess(job, profile):
+        return compatibility(job, profile, compare(job, profile)[1])
+
+    report = assess(post, prefs)
+    assert report["score"] == report["confidence"] == 90
+    assert [(s["skill"], s["context"], s["confirmed"]) for s in report["skills"]] == [
+        ("JavaScript", "required", True), ("PostgreSQL", "required", True), ("Active Directory", "preferred", False)]
+    full = prefs.model_copy(update={"technical_skills": [*prefs.technical_skills, "Active Directory"]})
+    assert assess(post, full)["score"] == 100
+    other = post.model_copy(update={"title": "Senior Developer", "salary": None, "description": "Python is not required. 3 years of experience."})
+    result = assess(other, prefs)
+    assert result["criteria"]["Experience"] == "not_match"
+    assert result["criteria"]["Salary"] == "missing"
+    assert result["skills"][0]["context"] == "mentioned"
+    assert result["experience_evidence"] == ["3 years of experience"]
+    assert assess(other.model_copy(update={"salary": post.salary.model_copy(update={"currency": "USD"})}), prefs)["criteria"]["Salary"] == "uncertain"
+    assert assess(other, Preferences(job_titles=["Nurse"]))["score"] == 0
+
+
+def test_ranking_before_pagination_and_profile_changes(migration_database):
+    backend = Path(__file__).resolve().parents[1]
+    with psycopg.connect(migration_database, autocommit=True) as db, TestClient(app) as client:
+        for file in ("schema.sql", "migrations/002_profile.sql", "migrations/003_discovery.sql"):
+            db.execute((backend / file).read_text())
+        source = client.post("/api/discovery/sources", json={"provider": "lever", "board": "sample", "company": "Fixture"}).json()
+        postings = [Posting(external_id=f"{i:03}", title="Analyst" if i == 0 else "Artist",
+                            company="Fixture", url="https://example.com/job") for i in range(52)]
+        discovery_routes.store_listings(source, postings)
+        client.put("/api/profile/preferences", json={"job_titles": ["Analyst"]}).raise_for_status()
+        def jobs(query):
+            return client.get("/api/discovery/jobs?" + query).json()["jobs"]
+        first = jobs("sort=best")
+        assert len(first) == 50 and first[0]["title"] == "Analyst"
+        assert first == jobs("sort=best")
+        assert jobs("sort=score")[0]["title"] == "Analyst"
+        assert jobs("sort=newest&offset=50")[-1]["title"] == "Analyst"
+        assert jobs("sort=recent")[0]["title"] == "Artist"
+        client.put("/api/profile/preferences", json={"job_titles": ["Artist"]}).raise_for_status()
+        assert jobs("sort=best")[0]["title"] == "Artist"
