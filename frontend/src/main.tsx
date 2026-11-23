@@ -1,5 +1,7 @@
 ﻿import { useEffect, useState, type FormEvent } from 'react';
 import { createRoot } from 'react-dom/client';
+import { request } from './api';
+import { Profile } from './Profile';
 import './style.css';
 
 const stages = {
@@ -20,16 +22,7 @@ type Job = {
   created_at: string;
 };
 
-async function request<T>(path = '', options?: RequestInit): Promise<T> {
-  const response = await fetch('/api/jobs' + path, options);
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(typeof payload?.detail === 'string' ? payload.detail : 'Check that the local API is running and try again.');
-  }
-  return response.json();
-}
-
-function App() {
+function Dashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filter, setFilter] = useState<Stage | 'all'>('all');
   const [load, setLoad] = useState<'loading' | 'ready' | 'failed'>('loading');
@@ -41,7 +34,7 @@ function App() {
     setLoad('loading');
     setError('');
     try {
-      setJobs(await request<Job[]>());
+      setJobs(await request<Job[]>('/api/jobs'));
       setLoad('ready');
     } catch (problem) {
       setLoad('failed');
@@ -56,7 +49,7 @@ function App() {
     setBusy(true);
     setError('');
     try {
-      const job = await request<Job>(jobId === undefined ? '' : '/' + jobId, {
+      const job = await request<Job>(jobId === undefined ? '/api/jobs' : '/api/jobs/' + jobId, {
         method: jobId === undefined ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -88,14 +81,7 @@ function App() {
   const visibleJobs = filter === 'all' ? jobs : jobs.filter(job => job.status === filter);
 
   return (
-    <>
-      <header className="top">
-        <div className="wrap bar">
-          <div className="brand"><span className="mark" aria-hidden="true">P</span> PolPol <span>JobPilot</span></div>
-          <span className="local">Local workspace</span>
-        </div>
-      </header>
-      <main className="wrap">
+    <main className="wrap">
         <section className="intro">
           <div>
             <h1>Application dashboard</h1>
@@ -152,7 +138,33 @@ function App() {
             </li>)}
           </ul>
         </section>
-      </main>
+    </main>
+  );
+}
+
+function App() {
+  const [profile, setProfile] = useState(() => window.location.hash === '#profile');
+
+  // Hash links support browser Back and direct access without adding a router.
+  useEffect(() => {
+    const navigate = () => setProfile(window.location.hash === '#profile');
+    window.addEventListener('hashchange', navigate);
+    return () => window.removeEventListener('hashchange', navigate);
+  }, []);
+
+  return (
+    <>
+      <header className="top">
+        <div className="wrap bar">
+          <div className="brand"><span className="mark" aria-hidden="true">P</span> PolPol <span>JobPilot</span></div>
+          <nav className="navigation" aria-label="Main navigation">
+            <a href="#dashboard" aria-current={profile ? undefined : 'page'}>Dashboard</a>
+            <a href="#profile" aria-current={profile ? 'page' : undefined}>Profile / Preferences</a>
+          </nav>
+          <span className="local">Local workspace</span>
+        </div>
+      </header>
+      {profile ? <Profile /> : <Dashboard />}
     </>
   );
 }

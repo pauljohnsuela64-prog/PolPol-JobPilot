@@ -68,3 +68,34 @@ button:disabled, select:disabled { opacity: .65; cursor: default; }
   .fields { grid-template-columns: 1fr; }
   .panel-head, .jobs li { padding-inline: 12px; gap: 8px; }
 }
+
+.navigation { display: flex; flex-wrap: wrap; gap: 6px; }
+.navigation a { padding: 8px 12px; color: var(--muted); text-decoration: none; border-radius: 8px; font-weight: 650; }
+.navigation a:hover, .navigation a[aria-current="page"] { background: #edeaff; color: var(--accent); }
+.profile-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 18px; align-items: start; }
+.profile-field { display: grid; gap: 6px; font-size: .95rem; }
+.profile-field small { color: var(--muted); }
+.profile-field input { width: 100%; min-width: 0; }
+.profile-field textarea { width: 100%; resize: vertical; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: inherit; font: inherit; }
+.preference-fields { display: grid; gap: 12px; min-width: 0; border: 0; padding: 0; margin: 16px 0 0; }
+.preference-fields > select { margin-top: -6px; }
+.preference-fields > button { justify-self: start; }
+.resume-summary { margin-block: 14px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow-wrap: anywhere; }
+.resume-summary p { font-size: .875rem; }
+.resume-form { margin-top: 16px; }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.success { margin: 0 0 16px; padding: 12px 16px; border-radius: 8px; background: #eaf5ef; color: #315e4e; }
+@media (max-width: 720px) {
+  .top .bar { flex-wrap: wrap; padding-block: 12px; }
+  .navigation { order: 1; width: 100%; }
+  .profile-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (max-width: 350px) {
+  .top .local { display: none; }
+}
+.title-entry { display: flex; gap: 8px; margin-block: 6px; }
+.title-entry input { flex: 1; min-width: 0; }
+.hint { color: var(--muted); }
+.selected-titles { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 8px 0 0; padding: 0; }
+.selected-titles li { min-width: 0; max-width: 100%; }
+.selected-titles button { background: #edeaff; color: var(--accent); max-width: 100%; overflow-wrap: anywhere; }
