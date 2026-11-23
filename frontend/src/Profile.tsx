@@ -1,3 +1,4 @@
+import { MasterEditor } from './Builder';
 import { useEffect, useState, type FormEvent } from 'react';
 import { request, send } from './api';
 
@@ -236,6 +237,7 @@ export function Profile() {
           </section>
         </div>
       )}
+    <details><summary>Edit verified career information</summary><MasterEditor /></details>
     </main>
   );
 }
