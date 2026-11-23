@@ -30,6 +30,7 @@ From the project folder, run the schema and migrations in order against the same
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\schema.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\002_profile.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\003_discovery.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\005_resume_builder.sql
 ```
 
 ### Start the API
@@ -72,7 +73,7 @@ Set-Location ..\frontend
 npm.cmd run build
 ```
 
-The health and validation tests run without PostgreSQL. To run the full workflows, create a disposable test database owned by `jobpilot`. Apply all three SQL scripts to it as shown above, using the test database name. Set `DATABASE_URL` to the test connection string and then run `$env:JOBPILOT_TEST_DATABASE_URL = $env:DATABASE_URL` in the same terminal before pytest. The integration tests write preferences and resume metadata, so use a separate database from your real profile.
+The health and validation tests run without PostgreSQL. To run the full workflows, create a disposable test database owned by `jobpilot`. Apply all SQL scripts to it as shown above, using the test database name. Set `DATABASE_URL` to the test connection string and then run `$env:JOBPILOT_TEST_DATABASE_URL = $env:DATABASE_URL` in the same terminal before pytest. The integration tests write preferences and resume metadata, so use a separate database from your real profile.
 
 ## Discover and save jobs
 
@@ -148,3 +149,21 @@ Best matches first ranks by score multiplied by evidence confidence. Highest sco
 - [ ] Switch between all four sorts with Apply filters. Check a second page when available.
 - [ ] Change a preference, revisit Discovery, and verify that the score updates. Save a listing and check its Dashboard stage.
 - [ ] Repeat at a phone width. Use the Windows backend test and frontend build commands above for automated checks.
+
+
+## Phase 5 Resume Builder on Windows
+
+Use the Windows setup commands above. For an existing install, stop the API, run the pip install command again for python-docx and ReportLab, apply 005_resume_builder.sql to the same database, then restart FastAPI and Vite. The migration creates the master resume and draft tables and is safe to rerun.
+
+1. Under Profile, expand **Edit verified career information**. Enter your name, contact details and verified career facts. Put each education item, role, project, achievement, certification or skill on its own line. Keep related employers, dates and outcomes together. Save the master.
+2. In Discovery, choose **Tailor Resume** on a listing. You can also select an opening directly in Resume Builder. Generate a draft. Each generation creates a new history entry with a snapshot of the opening, master and matching evidence.
+3. Review the preview and the separate suggestions. Edit the text and save your edits. Approve the saved revision and choose DOCX or PDF. Save the download outside the project folder. Use Draft history to reopen earlier generations or Delete draft to remove the selected one.
+
+Tailoring orders existing facts by recognized relevant skill terms. It uses the approved summary and can add a short sentence naming verified relevant skills. A posting without a description produces a master-based draft. Uploaded PDFs are independent of this editor. Generated files are rendered in memory and downloaded directly. Long resumes can paginate differently between formats; font coverage depends on the installed fonts. The plain-text editor supports headings and simple bullet lines. Review wording, dates, and page breaks before sharing.
+
+### Manual acceptance
+
+- Save two projects and experiences, reload Profile, and verify their text.
+- Generate twice for one job. Check the order of relevant entries, the suggestions, and both history entries.
+- Edit one draft, save, approve, and download both formats. Compare the text and confirm the original uploaded resume is still listed.
+- Delete one draft and verify the other still opens. Repeat the review at a narrow window width.
