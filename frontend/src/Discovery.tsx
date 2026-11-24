@@ -254,6 +254,7 @@ export function Discovery() {
             </details>}
             <div className="posting-actions">
               <a href={'#builder/' + job.id}>Tailor Resume</a>
+              <a href={'#preparation/' + job.id}>Prepare application</a>
               <a href={job.url} target="_blank" rel="noopener noreferrer">Original posting <span aria-hidden="true">↗</span></a>
               <button className="primary" onClick={() => save(job)} disabled={!!action || job.tracked_job_id !== null}>
                 {job.tracked_job_id !== null ? 'Saved to Dashboard' : 'Save to Dashboard'}

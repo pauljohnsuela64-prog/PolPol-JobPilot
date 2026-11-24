@@ -31,6 +31,7 @@ From the project folder, run the schema and migrations in order against the same
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\002_profile.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\003_discovery.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\005_resume_builder.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\006_application_preparation.sql
 ```
 
 ### Start the API
@@ -167,3 +168,33 @@ Tailoring orders existing facts by recognized relevant skill terms. It uses the 
 - Generate twice for one job. Check the order of relevant entries, the suggestions, and both history entries.
 - Edit one draft, save, approve, and download both formats. Compare the text and confirm the original uploaded resume is still listed.
 - Delete one draft and verify the other still opens. Repeat the review at a narrow window width.
+
+## Phase 6 Application Preparation on Windows
+
+**Upgrade an existing Phase 5 installation.** Stop FastAPI, then back up PostgreSQL and the uploaded resume directory together. Run these commands from the project folder in PowerShell. Adjust the PostgreSQL installation path and connection details for your installation. Choose a private local backup location with enough free space.
+
+```powershell
+$pgBin = 'C:\Program Files\PostgreSQL\18\bin'
+$backup = Join-Path $env:LOCALAPPDATA ("JobPilot-backup-" + (Get-Date -Format yyyyMMdd-HHmmss))
+New-Item -ItemType Directory -Path $backup -ErrorAction Stop
+& "$pgBin\pg_dump.exe" -h 127.0.0.1 -U jobpilot -d jobpilot -Fc -f "$backup\jobpilot.dump"
+if ($LASTEXITCODE) { throw 'Database backup failed.' }
+& "$pgBin\pg_restore.exe" --list "$backup\jobpilot.dump" | Out-Null
+if ($LASTEXITCODE) { throw 'Cannot read the backup archive.' }
+$resumes = if ($env:JOBPILOT_RESUME_DIR) { $env:JOBPILOT_RESUME_DIR } else { Join-Path $env:LOCALAPPDATA 'PolPolJobPilot\resumes' }
+if (Test-Path -LiteralPath $resumes) { Copy-Item -LiteralPath $resumes -Destination "$backup\resumes" -Recurse -ErrorAction Stop }
+& "$pgBin\psql.exe" -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\006_application_preparation.sql
+if ($LASTEXITCODE) { throw 'Migration failed.' }
+```
+
+Migration 006 adds a preparation table and index and can be rerun. Start FastAPI and Vite using the two Windows terminals described above. For a restore rehearsal, create a separate empty database owned by the same role, restore the archive with `pg_restore --exit-on-error -d <empty_database>` and the same host and user options, and point a test installation at the restored database and backed-up resume directory.
+
+### Prepare and verify a packet
+
+1. Save a verified master under Profile. For a synthetic check, enter Python as a skill and a Python catalog as a project. Choose a Discovery listing that mentions Python. Generate a tailored resume in Resume Builder if you want to attach one.
+2. Open Application Preparation from that listing. Check the selected role, expand the original posting details, and choose the tailored resume version. Enter one screening question per line. Try “What are your relevant skills?” and “When can you start?”.
+3. Generate the record. Compare the letter and suggested answers with your master facts. The start-date answer should read **Needs your input.** Edit the text, complete your checklist, and save. Approve the saved revision, then download the letter as DOCX and PDF and the answers and checklist as text files.
+4. Change a checklist item and save again. Confirm that exports require fresh approval. Generate a second record for the same job, reload the page, and reopen both from Preparation history. Delete one and verify that the other record, its resume snapshot, and the Dashboard stage are intact.
+5. Repeat at a 360px viewport. Check that the editor, approval controls, and downloads remain reachable.
+
+**Limitations.** Suggestions use local phrase matching against manually verified master skills and related project, experience, and achievement entries. Salary, availability, work authorization, unfamiliar wording, and compound questions require your input. A sparse master can produce a short letter with no personal qualifications. Review every claim and fill unresolved answers before sharing. Approval records your review of one saved revision. The checklist can represent work still outstanding. History keeps separate generated records, each with its latest saved edits and its original job and selected resume snapshots. Downloaded files stay in the location you choose. Submitting an application and updating its Dashboard stage are manual steps.

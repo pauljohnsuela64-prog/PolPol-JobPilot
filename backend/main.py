@@ -9,10 +9,12 @@ from pydantic import BaseModel, StringConstraints
 from builder import router as builder_router
 from database import database, track_job
 from discovery_routes import router as discovery_router
+from preparation_routes import router as preparation_router
 from profile_routes import router as profile_router
 
 app = FastAPI(title="PolPol JobPilot", docs_url=None, redoc_url=None)
 app.include_router(builder_router)
+app.include_router(preparation_router)
 app.include_router(profile_router)
 app.include_router(discovery_router)
 
