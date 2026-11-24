@@ -13,7 +13,12 @@ from preparation_routes import router as preparation_router
 from profile_routes import router as profile_router
 from queue_routes import router as queue_router
 
-app = FastAPI(title="PolPol JobPilot", docs_url=None, redoc_url=None)
+from scheduler import lifespan, router as schedule_router
+from shortlist import router as shortlist_router
+
+app = FastAPI(lifespan=lifespan, title="PolPol JobPilot", docs_url=None, redoc_url=None)
+app.include_router(schedule_router)
+app.include_router(shortlist_router)
 app.include_router(builder_router)
 app.include_router(preparation_router)
 app.include_router(profile_router)

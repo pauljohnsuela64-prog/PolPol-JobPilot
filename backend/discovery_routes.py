@@ -2,7 +2,6 @@ from itertools import islice
 
 import heapq
 import re
-import threading
 from typing import Annotated, Literal
 
 import httpx
@@ -12,7 +11,7 @@ from pydantic import BaseModel, StringConstraints
 
 from database import database, track_job
 from job_matching import Match, compare, compatibility
-from job_providers import BOARD_PATTERN, FeedError, Posting, Provider, fetch_board
+from job_providers import BOARD_PATTERN, HOSTS, FeedError, FeedRateLimit, Posting, Provider, fetch_board
 from profile_routes import Preferences
 
 def check_browser_origin(request: Request):
@@ -22,7 +21,6 @@ def check_browser_origin(request: Request):
 
 
 router = APIRouter(prefix="/api/discovery", dependencies=[Depends(check_browser_origin)])
-refresh_lock = threading.Lock()
 RecordId = Annotated[int, Path(ge=1, le=2_147_483_647)]
 
 
@@ -86,28 +84,38 @@ def store_listings(source, jobs: list[Posting]) -> None:
 
 @router.post("/refresh")
 def refresh():
-    # The local server uses one worker. Ignore overlapping clicks across tabs.
-    if not refresh_lock.acquire(blocking=False):
-        raise HTTPException(409, "A refresh is already running. Wait for it to finish.")
-    try:
-        with database() as connection:
-            sources = connection.execute("SELECT * FROM career_boards WHERE enabled ORDER BY id").fetchall()
-        reports = []
-        with httpx.Client(trust_env=False, follow_redirects=False) as client:
-            for source in sources:
-                try:
-                    jobs, rejected = fetch_board(client, source["provider"], source["board"], source["company"])
-                except FeedError as error:
-                    reports.append({"source_id": source["id"], "company": source["company"], "board": source["board"],
-                                    "seen": 0, "skipped": 0, "error": str(error)})
-                    continue
-                store_listings(source, jobs)
-                reports.append({"source_id": source["id"], "company": source["company"], "board": source["board"],
-                                "seen": len(jobs), "skipped": rejected, "error": None})
-        return reports
-    finally:
-        refresh_lock.release()
+    from scheduler import run_refresh
+    return run_refresh()
 
+
+def fetch_enabled_boards(connection, persistent_cooldowns):
+    sources = connection.execute("SELECT * FROM career_boards WHERE enabled ORDER BY id").fetchall()
+    reports = []
+    with httpx.Client(trust_env=False, follow_redirects=False) as client:
+        for source in sources:
+            host = HOSTS[source["provider"]]
+            try:
+                if persistent_cooldowns and connection.execute(
+                    "SELECT 1 FROM discovery_provider_cooldowns WHERE host=%s AND retry_at > clock_timestamp()",
+                    (host,),
+                ).fetchone():
+                    raise FeedError("Provider rate limit reached. Try refreshing later.")
+                jobs, rejected = fetch_board(client, source["provider"], source["board"], source["company"])
+            except FeedError as error:
+                if persistent_cooldowns and isinstance(error, FeedRateLimit):
+                    connection.execute("""
+                        INSERT INTO discovery_provider_cooldowns (host, retry_at)
+                        VALUES (%s, clock_timestamp() + make_interval(secs => %s))
+                        ON CONFLICT (host) DO UPDATE SET retry_at = GREATEST(
+                            discovery_provider_cooldowns.retry_at, EXCLUDED.retry_at)
+                    """, (host, error.seconds))
+                reports.append({"source_id": source["id"], "company": source["company"], "board": source["board"],
+                                "seen": 0, "skipped": 0, "error": str(error)})
+                continue
+            store_listings(source, jobs)
+            reports.append({"source_id": source["id"], "company": source["company"], "board": source["board"],
+                            "seen": len(jobs), "skipped": rejected, "error": None})
+    return reports
 
 @router.get("/jobs")
 def list_listings(

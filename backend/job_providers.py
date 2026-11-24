@@ -33,6 +33,12 @@ class FeedError(Exception):
     """A short message safe to show to the user."""
 
 
+class FeedRateLimit(FeedError):
+    def __init__(self, seconds):
+        super().__init__("Provider rate limit reached. Try refreshing later.")
+        self.seconds = seconds
+
+
 class Salary(BaseModel):
     currency: str = Field(pattern=r"^[A-Z]{3}$")
     interval: str | None
@@ -203,8 +209,9 @@ def read_json(client: httpx.Client, provider: Provider, path: str, params: dict,
             with client.stream("GET", f"https://{host}{path}", params=params, timeout=min(5, remaining),
                                follow_redirects=False, headers={"Accept": "application/json", "Accept-Encoding": "identity"}) as response:
                 if response.status_code == 429:
-                    rate_until[host] = time.monotonic() + retry_delay(response.headers.get("Retry-After"))
-                    raise FeedError("Provider rate limit reached. Try refreshing later.")
+                    seconds = retry_delay(response.headers.get("Retry-After"))
+                    rate_until[host] = time.monotonic() + seconds
+                    raise FeedRateLimit(seconds)
                 if response.status_code == 404:
                     raise FeedError("Board not found. Check the board identifier and provider.")
                 if response.status_code >= 500:

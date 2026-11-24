@@ -177,3 +177,12 @@ button:disabled, select:disabled { opacity: .65; cursor: default; }
 .queue-history summary { cursor: pointer; }
 .queue-history ol { padding-left: 1.5rem; }
 @media (max-width: 580px) { .queue-fields { grid-template-columns: minmax(0,1fr); } }
+.smart-shortlist .panel { min-width: 0; overflow-wrap: anywhere; }
+.shortlist-controls, .shortlist-filters { display: grid; gap: 12px; align-items: end; margin-block: 14px; }
+.shortlist-controls { grid-template-columns: minmax(0, 1fr) auto; }
+.shortlist-filters { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.smart-shortlist .queue-fields { margin-block: 14px; }
+.smart-shortlist :is(input,select) { min-width: 0; width: 100%; }
+.smart-shortlist .discovery-card button { margin-top: 12px; }
+.smart-shortlist .queue-list time { color: var(--muted); font-size: .9rem; }
+@media (max-width: 430px) { .shortlist-controls { grid-template-columns: 1fr; } }

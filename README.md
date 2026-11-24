@@ -33,6 +33,8 @@ From the project folder, run the schema and migrations in order against the same
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\005_resume_builder.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\006_application_preparation.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\007_application_queue.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\008_discovery_schedule.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\008_shortlist.sql
 ```
 
 ### Start the API
@@ -221,3 +223,40 @@ Migration 007 adds a nullable application-approval revision to saved resumes and
 5. Repeat at 360px. Try a manual job with a later tracker stage and no queue history. Review the prior-submission warning before deciding whether to log it.
 
 **Limitations.** Ready describes the latest preparation record and its attached resume revision. You can record a submission made outside JobPilot even when its local materials are incomplete. A validated posting can expire or redirect at the employer. Similar company and title pairs produce a warning that you resolve manually. JobPilot cannot verify activity on another board, in another browser, or by email. Follow-up is a date-based queue view. Enter only the reference and notes you need, and keep account credentials out of these fields.
+
+## Phase 8 Automatic Discovery and Smart Shortlist
+
+**Windows upgrade from Phase 7.** Stop FastAPI. Make the local database and uploaded-resume backup described under Phase 6. Apply both Phase 8 migrations to the same database, then restart FastAPI and Vite using the Windows startup steps above. Both migrations can be rerun. Existing board, review, tracking and application data remain in place.
+
+```powershell
+$psql = 'C:\Program Files\PostgreSQL\18\bin\psql.exe'
+foreach ($file in @('008_discovery_schedule.sql', '008_shortlist.sql')) {
+    & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f ".\backend\migrations\$file"
+    if ($LASTEXITCODE) { throw "Migration failed for $file" }
+}
+```
+
+**Scheduling.** Set up public boards in Job Discovery, then open Smart Shortlist. Automatic refresh starts paused with a 60-minute interval. Choose 15 minutes to 7 days and start it. Starting makes the first refresh due immediately. The API periodically checks the saved due time. It fetches enabled boards using the same Greenhouse and Lever clients as manual refresh. Match scoring uses local preferences. Providers receive only public board requests. A database lock keeps a manual refresh and scheduled refresh from running at the same time.
+
+The browser can close while the API continues working. While the API is stopped or Windows is asleep, refreshes wait. On restart the worker performs one overdue refresh and schedules the next interval from completion. Pausing prevents future scheduled runs. A refresh already underway can finish. Check last run, next run and activity for results, including individual board failures. A listing can remain visible after the employer closes it.
+
+**Reading the shortlist.** Both the score and evidence confidence must meet your saved minimums. For example, a title match alone can score 100 while covering only 25 points of evidence. Setting confidence above 25 excludes that title-only result. The list uses current preferences and thresholds across saved Discovery listings. At refresh, the first qualifying match for each stable listing ID creates one activity entry. Changing preferences can bring an older listing into the shortlist. Review state is saved separately from the Dashboard stage.
+
+### Optional Windows Task Scheduler startup
+
+Use this option if you want the local API to start when you sign in. JobPilot controls the refresh interval. Task Scheduler only starts the API. Configure this under your own Windows account, with **Run only when user is logged on** and ordinary user privileges.
+
+1. Configure PostgreSQL password-file authentication for your existing JobPilot role in your private account profile. On Windows the default file is `%APPDATA%\postgresql\pgpass.conf`. Restrict access to your account and use a specific host, port, database, and role. The password stays out of the repository, task arguments and logs. [PostgreSQL password-file instructions](https://www.postgresql.org/docs/18/libpq-pgpass.html)
+2. Under your **user** environment variables, set `DATABASE_URL` to the password-free connection string `postgresql://jobpilot@127.0.0.1:5432/jobpilot`, adjusting the names if needed. Preserve your existing `JOBPILOT_RESUME_DIR` setting if you use a custom directory. Sign out and sign back in so the task receives the updated environment.
+3. In Task Scheduler choose **Create Task** with an **At log on** trigger for your account. For **Start a program**, use the full path to `C:\PolPol-JobPilot\.venv\Scripts\python.exe`. Set arguments to `-m uvicorn main:app --host 127.0.0.1 --port 8000` and **Start in** to `C:\PolPol-JobPilot\backend`. Adjust both paths for your install. Select **Do not start a new instance** if the task is already running. For long-running use, clear any task time limit. [Microsoft multiple-instance settings](https://learn.microsoft.com/en-us/windows/win32/taskschd/tasksettings-multipleinstances)
+4. Stop any manually started API on port 8000, run the task once, and verify the health endpoint and saved schedule from the dashboard. Start Vite separately for browser access. Disable the task to prevent future sign-in launches. To stop a currently running API, end that task as well.
+
+### Manual acceptance
+
+1. Save a target title and relevant skills in Profile. Configure an enabled board and open Smart Shortlist. Start a schedule, let it finish, and verify last run, next run and activity. Pause it, reload, and confirm it stays paused.
+2. Choose score and confidence thresholds on either side of a known match. Check sorting, search and reviewed filters. Mark the listing reviewed, reload, and confirm the review persists.
+3. Refresh the same board again. Verify one listing and one new-match notification for the same opening. Open it in the existing application workflow and check its Dashboard stage.
+4. Try an unavailable board alongside a working one. Confirm the error identifies the failing board and successful results remain available. Pause or remove the test configuration when done.
+5. With automatic refresh enabled, stop the API until a run is due, then restart it. Check that it runs once and sets a future due time. Repeat the shortlist review at a 360px browser width.
+
+The **New match** label identifies an unreviewed opening first discovered in the last 24 hours. Older unreviewed openings remain eligible. The activity panel shows the latest 100 events. The scheduler checks for due work every 15 seconds. Refreshes use a 15-second deadline per board and persist provider cooldowns after a rate-limit response.
