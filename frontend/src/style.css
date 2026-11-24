@@ -135,3 +135,19 @@ button:disabled, select:disabled { opacity: .65; cursor: default; }
 }
 .resume-preview { white-space: pre-wrap; overflow-wrap: anywhere; font: 1rem/1.5 Arial, sans-serif; padding: 16px; border: 1px solid var(--border); }
 .builder select, .builder textarea { min-width: 0; max-width: 100%; width: 100%; } .builder .preference-fields, .builder .profile-field { grid-template-columns: minmax(0, 1fr); }
+.prep-job { margin-bottom: 18px; max-width: 48rem; }
+.prep-setup { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.preparation .panel { min-width: 0; overflow-wrap: anywhere; }
+.preparation .profile-field, .preparation .preference-fields { grid-template-columns: minmax(0,1fr); }
+.preparation select { min-width: 0; width: 100%; }
+.preparation details, .prep-setup h2 + label { margin-top: 14px; }
+.preparation summary { cursor: pointer; color: var(--accent); }
+.preparation h3 { margin: 12px 0 0; }
+.preparation .profile-actions { margin: 0; }
+.prep-question { display: grid; gap: 8px; border-left: 3px solid var(--border); padding-left: 12px; }
+.prep-question button { justify-self: start; }
+.prep-description { white-space: pre-line; max-height: 20rem; overflow: auto; }
+.prep-item { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px; }
+.prep-item input[type=checkbox] { min-height: 0; width: 20px; height: 20px; }
+.prep-item input { min-width: 0; }
+@media (max-width: 720px) { .prep-setup { grid-template-columns: minmax(0, 1fr); gap: 0; } }
