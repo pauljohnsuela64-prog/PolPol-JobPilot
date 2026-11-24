@@ -11,12 +11,14 @@ from database import database, track_job
 from discovery_routes import router as discovery_router
 from preparation_routes import router as preparation_router
 from profile_routes import router as profile_router
+from queue_routes import router as queue_router
 
 app = FastAPI(title="PolPol JobPilot", docs_url=None, redoc_url=None)
 app.include_router(builder_router)
 app.include_router(preparation_router)
 app.include_router(profile_router)
 app.include_router(discovery_router)
+app.include_router(queue_router)
 
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 OptionalText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]

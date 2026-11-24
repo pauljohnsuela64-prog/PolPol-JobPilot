@@ -8,7 +8,7 @@ const fields = {
 type Master = { name: string; summary: string | null } & Record<keyof typeof fields, string[]>;
 type Job = { id: number; title: string; company: string };
 type Version = { id: number; created_at: string; revision: number };
-type Draft = { id: number; revision: number; content: string; description: string;
+type Draft = { id: number; revision: number; approved_revision: number | null; content: string; description: string;
   evidence: { skill: string; context: string; confirmed: boolean }[] };
 const base = '/api/builder';
 const json = (method: string, body: unknown) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -99,6 +99,15 @@ function Drafts({ job }: { job: number }) {
         })}>Save edits</button>
         {dirty && <button onClick={() => { if (window.confirm('Discard unsaved edits and reload the saved draft?')) void run(() => open(draft.id)); }}>Discard unsaved edits</button>}
         <h3>Resume preview</h3><pre className="resume-preview">{text}</pre>
+        <h3>Application approval</h3>
+        <p>{draft.approved_revision === draft.revision ? 'Approved for applications' :
+          draft.approved_revision == null ? 'Approval needed' : 'Approval outdated'} · saved revision {draft.revision}</p>
+        <button disabled={dirty} onClick={() => run(async () => {
+          await request(base + '/drafts/' + draft.id + '/approval', json('PUT', {
+            revision: draft.revision, approved: draft.approved_revision !== draft.revision,
+          }));
+          await open(draft.id);
+        })}>{draft.approved_revision === draft.revision ? 'Revoke application approval' : 'Approve this revision for applications'}</button>
         <label><input type="checkbox" checked={approved} disabled={dirty} onChange={e => approve(e.target.checked)} /> I reviewed and approve this revision for export.</label>
         <div className="profile-actions">{['docx','pdf'].map(format => <button key={format} disabled={!approved || dirty} onClick={() => run(() => download(format))}>Download {format.toUpperCase()}</button>)}</div>
         <button onClick={() => { if (window.confirm('Delete this saved draft?')) void run(async () => {
