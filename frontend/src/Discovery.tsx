@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { request } from './api';
 
-const providers = { greenhouse: 'Greenhouse', lever: 'Lever', 'lever-eu': 'Lever (EU)' };
-const matches = {
+export const providers = { greenhouse: 'Greenhouse', lever: 'Lever', 'lever-eu': 'Lever (EU)' };
+export const matches = {
   match: 'Confirmed match',
   uncertain: 'Uncertain match',
   missing: 'Missing information',
@@ -10,12 +10,12 @@ const matches = {
   unconfigured: 'No preferences set',
 };
 const criteria = { match: 'Matches', uncertain: 'Uncertain', missing: 'Missing', not_match: 'Outside preference' };
-const arrangements = { remote: 'Remote', hybrid: 'Hybrid', 'on-site': 'On-site' };
+export const arrangements = { remote: 'Remote', hybrid: 'Hybrid', 'on-site': 'On-site' };
 type Provider = keyof typeof providers;
 type Match = keyof typeof matches;
 type Source = { id: number; provider: Provider; board: string; company: string; enabled: boolean };
 type Report = Pick<Source, 'company' | 'board'> & { source_id: number; seen: number; skipped: number; error: string | null };
-type Listing = {
+export type Listing = {
   id: number;
   title: string;
   company: string;
@@ -167,6 +167,7 @@ export function Discovery() {
         <div>
           <h1>Job discovery</h1>
           <p>Find openings on employer career boards and compare them with your saved preferences.</p>
+          <a href="#shortlist">Manage automated discovery and review your shortlist</a>
         </div>
         <button className="primary" onClick={refresh} disabled={!!action || !sources.some(source => source.enabled)}>
           {action === 'refresh' ? 'Refreshing jobs...' : 'Refresh jobs'}
