@@ -32,6 +32,7 @@ From the project folder, run the schema and migrations in order against the same
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\003_discovery.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\005_resume_builder.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\006_application_preparation.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\007_application_queue.sql
 ```
 
 ### Start the API
@@ -198,3 +199,25 @@ Migration 006 adds a preparation table and index and can be rerun. Start FastAPI
 5. Repeat at a 360px viewport. Check that the editor, approval controls, and downloads remain reachable.
 
 **Limitations.** Suggestions use local phrase matching against manually verified master skills and related project, experience, and achievement entries. Salary, availability, work authorization, unfamiliar wording, and compound questions require your input. A sparse master can produce a short letter with no personal qualifications. Review every claim and fill unresolved answers before sharing. Approval records your review of one saved revision. The checklist can represent work still outstanding. History keeps separate generated records, each with its latest saved edits and its original job and selected resume snapshots. Downloaded files stay in the location you choose. Submitting an application and updating its Dashboard stage are manual steps.
+
+## Phase 7 Controlled Application Workflow on Windows
+
+**Upgrade from Phase 6.** Stop the API and take the private database and resume-folder backup described under Phase 6. Use the same PostgreSQL host, role and database that your API uses. From the project folder, apply migration 007 in PowerShell:
+
+```powershell
+$psql = 'C:\Program Files\PostgreSQL\18\bin\psql.exe'
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\007_application_queue.sql
+if ($LASTEXITCODE) { throw 'Queue migration failed.' }
+```
+
+Migration 007 adds a nullable application-approval revision to saved resumes and a table for submission history. It can be rerun. Earlier downloads and Dashboard stages do not establish a verified submission time or a durable resume approval. Start FastAPI and Vite as described under **Run on Windows**, then open **Application Queue** in Edge.
+
+### Manual acceptance
+
+1. In Queue, find an unsaved Discovery opening by company or title. Check its tracker stage, materials and original hostname. **Open Official Application** opens the stored, validated posting in a new tab. Opening the link leaves the queue and Dashboard unchanged. A manual Dashboard job can use the same recording workflow without an employer link.
+2. In Resume Builder, save and approve a resume revision **for applications**. In Application Prep, create a packet with that resume and approve the saved packet. Revisit Queue and filter by **Ready**. Edit the resume and confirm the entry becomes **Draft**. Approving the edited resume still requires a new approved packet containing that revision. Editing the packet also clears readiness.
+3. After submitting to the employer yourself, choose **Record manual submission**. Enter the local submission time and channel, plus a reference, notes, or follow-up date if wanted. Confirm the checkbox and save. Verify one entry in submission history and one Dashboard job. A previously untracked or Saved job becomes Applied. A job already at Interview, Offer, or Closed retains that stage.
+4. Reopen the entry from Dashboard. Choose **Correct submission details**, change the reference, add a correction note and confirm. Expand submission history to see both versions. Set a follow-up date of today or earlier and check the **Follow-up** filter. Clear it or choose a future date to return to **Submitted**.
+5. Repeat at 360px. Try a manual job with a later tracker stage and no queue history. Review the prior-submission warning before deciding whether to log it.
+
+**Limitations.** Ready describes the latest preparation record and its attached resume revision. You can record a submission made outside JobPilot even when its local materials are incomplete. A validated posting can expire or redirect at the employer. Similar company and title pairs produce a warning that you resolve manually. JobPilot cannot verify activity on another board, in another browser, or by email. Follow-up is a date-based queue view. Enter only the reference and notes you need, and keep account credentials out of these fields.

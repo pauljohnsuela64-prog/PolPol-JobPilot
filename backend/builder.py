@@ -64,6 +64,12 @@ class Approval(BaseModel):
     revision: int = Field(ge=1)
 
 
+class ApplicationApproval(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    approved: bool = Field(strict=True)
+    revision: int = Field(ge=1, le=2147483647, strict=True)
+
+
 SECTIONS = {"summary": "Professional Summary", "skills": "Technical Skills", "experience": "Experience",
             "projects": "Projects", "achievements": "Achievements", "education": "Education",
             "certifications": "Certifications"}
@@ -150,7 +156,9 @@ def history(listing_id: int):
 @router.get("/drafts/{draft_id}")
 def read_draft(draft_id: int):
     with database() as db:
-        row = db.execute("""SELECT id,content,revision,source_snapshot->'evidence'->'skills' AS evidence,
+        # Reading the optional key keeps Phase 5 exports usable before migration 007.
+        row = db.execute("""SELECT id,content,revision,(to_jsonb(resume_drafts)->>'approved_revision')::integer AS approved_revision,
+                            source_snapshot->'evidence'->'skills' AS evidence,
                             source_snapshot->'posting'->>'description' AS description FROM resume_drafts WHERE id=%s""",
                          (draft_id,)).fetchone()
         if not row:
@@ -165,6 +173,18 @@ def edit(draft_id: int, body: Edit):
                          (body.content, draft_id, body.revision)).fetchone()
         if not row:
             raise HTTPException(409, "Reload this draft before saving changes.")
+        return row
+
+
+@router.put("/drafts/{draft_id}/approval")
+def set_application_approval(draft_id: int, body: ApplicationApproval):
+    """Only the saved revision reviewed in this window can receive approval."""
+    with database() as db:
+        row = db.execute("""UPDATE resume_drafts SET approved_revision=%s
+                            WHERE id=%s AND revision=%s RETURNING approved_revision""",
+                         (body.revision if body.approved else None, draft_id, body.revision)).fetchone()
+        if not row:
+            raise HTTPException(409, "Reload the current draft before changing its approval.")
         return row
 
 

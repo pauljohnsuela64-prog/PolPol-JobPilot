@@ -151,3 +151,29 @@ button:disabled, select:disabled { opacity: .65; cursor: default; }
 .prep-item input[type=checkbox] { min-height: 0; width: 20px; height: 20px; }
 .prep-item input { min-width: 0; }
 @media (max-width: 720px) { .prep-setup { grid-template-columns: minmax(0, 1fr); gap: 0; } }
+.application-queue .panel { overflow-wrap: anywhere; }
+.queue-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.queue-fields select, .queue-fields input { min-width: 0; width: 100%; }
+.queue-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.queue-list li { border-top: 1px solid var(--border); padding-block: 14px; display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.queue-list li > div { min-width: 0; }
+.queue-list a, .application-queue a, .job-text a { color: var(--accent); }
+.queue-list a { font-weight: 650; }
+.queue-state { display: inline-block; border-radius: 999px; padding: 5px 10px; font-size: .86rem; font-weight: 650; background: #edf0f7; color: #455673; }
+.queue-state.ready { background: #eaf5ef; color: #315e4e; }
+.queue-state.submitted { background: #edf3ff; color: #34558c; }
+.queue-state.follow_up,.queue-warning { background: #fff4dc; color: #684407; }
+.queue-warning { padding: 12px; border-radius: 8px; margin-top: 12px; }
+.queue-alert-text { color: #684407; }
+.queue-detail { max-width: 54rem; }
+.queue-detail .discovery-card-head { margin-top: 16px; }
+.queue-links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.queue-check { display: flex; align-items: center; gap: 10px; min-height: 42px; }
+.queue-check input { width: 20px; height: 20px; min-height: 0; flex-shrink: 0; }
+.queue-confirmation,.queue-history { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 12px; }
+.queue-confirmation h3 { margin-top: 0; }
+.queue-detail > button { margin-top: 12px; }
+.queue-notes { grid-column: 1 / -1; white-space: pre-wrap; }
+.queue-history summary { cursor: pointer; }
+.queue-history ol { padding-left: 1.5rem; }
+@media (max-width: 580px) { .queue-fields { grid-template-columns: minmax(0,1fr); } }
