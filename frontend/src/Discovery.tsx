@@ -1,3 +1,4 @@
+import { JobAnalysis } from './AI';
 import { useEffect, useState, type FormEvent } from 'react';
 import { request } from './api';
 
@@ -253,6 +254,7 @@ export function Discovery() {
               <summary>Preference details</summary>
               <ul>{Object.entries(job.checks).map(([field, status]) => <li key={field}>{field} · {criteria[status]}</li>)}</ul>
             </details>}
+            <JobAnalysis job={job.id} />
             <div className="posting-actions">
               <a href={'#builder/' + job.id}>Tailor Resume</a>
               <a href={'#preparation/' + job.id}>Prepare application</a>

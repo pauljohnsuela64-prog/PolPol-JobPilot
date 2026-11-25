@@ -75,7 +75,7 @@ SECTIONS = {"summary": "Professional Summary", "skills": "Technical Skills", "ex
             "certifications": "Certifications"}
 
 
-def tailor(master, posting, preferences):
+def tailor(master, posting, preferences, *, preserve_order=False):
     # Match against the manually confirmed master. Posting text can select facts but never supply prose.
     prefs = preferences.model_copy(update={"technical_skills": master.skills})
     evidence = compatibility(posting, prefs, compare(posting, prefs)[1])
@@ -87,7 +87,7 @@ def tailor(master, posting, preferences):
                    if word not in {"junior", "senior", "entry", "level", "remote", "hybrid", "with"}}
     def entry_relevance(entry):
         return relevance(entry), sum(contains(entry, term) for term in title_terms)
-    skills = sorted(master.skills, key=relevance, reverse=True)
+    skills = master.skills if preserve_order else sorted(master.skills, key=relevance, reverse=True)
     relevant = [skill for skill in skills if relevance(skill)]
     summary = master.summary or ""
     if relevant:
@@ -100,7 +100,7 @@ def tailor(master, posting, preferences):
             entries = [", ".join(skills)] if skills else []
         else:
             entries = getattr(master, key)
-            if key in {"experience", "projects", "achievements"}:
+            if not preserve_order and key in {"experience", "projects", "achievements"}:
                 entries = sorted(entries, key=entry_relevance, reverse=True)
             entries = ["- " + entry for entry in entries]
         if entries:

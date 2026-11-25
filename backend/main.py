@@ -6,6 +6,8 @@ from fastapi import FastAPI, HTTPException, Path, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, StringConstraints
 
+from ai_jobs import router as ai_jobs_router
+from ai_settings import router as ai_settings_router
 from builder import router as builder_router
 from database import database, track_job
 from discovery_routes import router as discovery_router
@@ -17,6 +19,8 @@ from scheduler import lifespan, router as schedule_router
 from shortlist import router as shortlist_router
 
 app = FastAPI(lifespan=lifespan, title="PolPol JobPilot", docs_url=None, redoc_url=None)
+app.include_router(ai_settings_router, prefix="/api")
+app.include_router(ai_jobs_router)
 app.include_router(schedule_router)
 app.include_router(shortlist_router)
 app.include_router(builder_router)

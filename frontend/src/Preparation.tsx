@@ -1,4 +1,5 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { SuggestionReview } from './AI';
+import { useEffect, useState } from 'react';
 import { request, send } from './api';
 
 type Job = { id: number; title: string; company: string; location?: string; description?: string; url?: string };
@@ -134,6 +135,8 @@ function Workspace({ job }: { job: Job }) {
           display(await request<Draft>(draftPath, json('PUT', { revision: draft.revision, ...content }))); await history(); setStatus('Edits saved.');
         })}>Save edits</button>
         {dirty && <button onClick={() => { if (window.confirm('Discard unsaved changes to this record?')) display(draft); }}>Discard edits</button>}</div>
+        <SuggestionReview key={draft.id + '-' + draft.revision} kind="preparation" id={draft.id} revision={draft.revision}
+          dirty={dirty} lockEditor={setBusy} onApplied={async () => { display(await request<Draft>(draftPath)); await history(); setStatus('Reviewed suggestion saved.'); }} />
         <h3>Review and export</h3>
         <p>Review the letter, answers and checklist before approving this revision. Editing a record requires fresh approval.</p>
         <button disabled={dirty || approved} onClick={() => run(async () => {

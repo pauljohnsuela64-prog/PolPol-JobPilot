@@ -1,4 +1,5 @@
-﻿import { useEffect, useState, type FormEvent } from 'react';
+﻿import { JobAnalysis } from './AI';
+import { useEffect, useState, type FormEvent } from 'react';
 import { request, send } from './api';
 import { arrangements, matches, providers, type Listing } from './Discovery';
 
@@ -104,6 +105,7 @@ export function SmartShortlist() {
           <div className="discovery-card-head"><div><h3>{job.title}</h3><p>{job.company} · {providers[job.provider]}</p></div><span className={'queue-state' + (job.newly_discovered ? ' ready' : '')}>{job.reviewed ? 'Reviewed' : job.newly_discovered ? 'New match' : 'Unreviewed'}</span></div>
           <dl className="posting-details"><div><dt>Compatibility</dt><dd>{job.compatibility.score}/100</dd></div><div><dt>Evidence confidence</dt><dd>{job.compatibility.confidence}%</dd></div>
             <div><dt>Location</dt><dd>{job.location || 'Unspecified'}</dd></div><div><dt>Preference match</dt><dd>{matches[job.match]}</dd></div></dl>
+          <JobAnalysis job={job.id} />
           <div className="queue-links">{job.url && <a href={job.url} target="_blank" rel="noopener noreferrer">Original posting</a>}<a href={'#preparation/' + job.id}>Prepare application</a></div>
           <button disabled={busy} onClick={() => void update(base + '/jobs/' + job.id, 'PATCH', { reviewed: !job.reviewed }, job.title + (job.reviewed ? ' marked unreviewed.' : ' marked reviewed.'))}>{job.reviewed ? 'Mark unreviewed' : 'Mark reviewed'}</button>
         </article>)}</div>

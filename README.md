@@ -35,6 +35,8 @@ From the project folder, run the schema and migrations in order against the same
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\007_application_queue.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\008_discovery_schedule.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\008_shortlist.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\009_ai_settings.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\009_ai_suggestions.sql
 ```
 
 ### Start the API
@@ -260,3 +262,37 @@ Use this option if you want the local API to start when you sign in. JobPilot co
 5. With automatic refresh enabled, stop the API until a run is due, then restart it. Check that it runs once and sets a future due time. Repeat the shortlist review at a 360px browser width.
 
 The **New match** label identifies an unreviewed opening first discovered in the last 24 hours. Older unreviewed openings remain eligible. The activity panel shows the latest 100 events. The scheduler checks for due work every 15 seconds. Refreshes use a 15-second deadline per board and persist provider cooldowns after a rate-limit response.
+
+## Phase 9 — optional local AI
+
+**Upgrade from Phase 8.** Stop FastAPI, take the database and resume-folder backup described under Phase 6, and run the two `009_` migration commands under **Set up PostgreSQL**. They add settings and suggestion storage. Restart the API and frontend. AI starts disabled.
+
+### Connect Ollama on Windows
+
+1. Open PowerShell and run `ollama --version`. If you want AI and the command is missing, use the [official Windows setup](https://docs.ollama.com/windows).
+2. Quit any running Ollama instance from the tray. Start a local-only server in a PowerShell window and leave the window open. These settings apply to that server process. [Ollama local configuration](https://docs.ollama.com/faq)
+
+   ```powershell
+   $env:OLLAMA_HOST = '127.0.0.1:11434'
+   $env:OLLAMA_NO_CLOUD = '1'
+   ollama serve
+   ```
+
+3. In another terminal, run `ollama list`. On the inspected machine, the existing `qwen3.5:4b` is a reasonable first choice for the RTX 4060 Laptop GPU with 8 GiB VRAM and 15.7 GiB system RAM. Loading time and available memory affect response time. If the list is empty, keep using the rule-based workflows until you choose to install a local model yourself. [Model details](https://ollama.com/library/qwen3.5:4b)
+4. In **AI Settings**, save the numeric loopback endpoint `http://127.0.0.1:11434` with assistance disabled to discover installed models. Select a model, enable assistance, and save again. A ready status confirms that Ollama reports the model installed and local. An error here leaves ordinary matching and document preparation available.
+
+A cold model can take longer than the 60-second generation timeout. If that happens, open the model shown by `ollama list` with `ollama run qwen3.5:4b` (substitute the installed name), wait for the prompt, then enter `/bye` and retry in JobPilot. Using a name absent from the installed list can trigger an Ollama download.
+
+### Privacy and limitations
+
+FastAPI sends job text and selected master-resume fields to the configured local Ollama process when you request assistance. The application trusts the local process you configure. Point it directly at Ollama. Model requests bypass environment proxies, reject redirects and check local model metadata before sending the prompt. JobPilot has no model-download, cloud inference, or application-submission action. Existing public employer-board refreshes still use the network.
+
+The model selects evidence by identifier. The backend resolves accepted identifiers to source text and composes documents using verified master-resume entries. Review each match in context. A possible gap means the saved resume lacks supporting evidence, and a quoted job requirement is an employer statement. Accuracy depends on the master resume you confirmed. Unsupported screening questions, including compensation or availability, need your input. AI suggestions can change the emphasis or order of existing facts. Rule-based suggestions remain available when Ollama is disabled, times out, returns unusable output, or lacks the selected model.
+
+### Manual acceptance in Edge
+
+1. Use a disposable database with all migrations. Save a master resume with SQL experience. Choose a discovered job mentioning SQL and a skill absent from the master. With AI disabled, run **Job analysis** and check the fallback label and source excerpts.
+2. Enable a local model in **AI Settings**, repeat the analysis, and compare the employer's wording with the master-resume evidence. A requested skill alone should never become an applicant qualification.
+3. Create a Resume Builder draft and an Application Preparation draft. Include a technical-skills question and a salary or availability question. Generate an assisted suggestion for each. Compare the saved and proposed versions, dismiss one, and reopen the draft to verify its content and approval.
+4. Apply a reviewed suggestion that changes content. Reopen the draft, check the revision history, and confirm it needs approval again. Open the same draft in two tabs, change it in one, and try applying the older preview in the other.
+5. Stop Ollama and request assistance. Check the fallback label, generate a rule-based draft, and verify that reviewing, editing, and exporting still follow the existing approval flow. Repeat the comparison on a narrow mobile viewport.

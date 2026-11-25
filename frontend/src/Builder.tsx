@@ -1,3 +1,4 @@
+import { SuggestionReview } from './AI';
 import { useEffect, useState, type FormEvent } from 'react';
 import { request, send } from './api';
 
@@ -98,6 +99,8 @@ function Drafts({ job }: { job: number }) {
           await open(draft.id); await history(); setStatus('Draft edits saved.');
         })}>Save edits</button>
         {dirty && <button onClick={() => { if (window.confirm('Discard unsaved edits and reload the saved draft?')) void run(() => open(draft.id)); }}>Discard unsaved edits</button>}
+        <SuggestionReview key={draft.id + '-' + draft.revision} kind="resume" id={draft.id} revision={draft.revision}
+          dirty={dirty} lockEditor={setBusy} onApplied={async () => { await open(draft.id); await history(); setStatus('Reviewed suggestion saved.'); }} />
         <h3>Resume preview</h3><pre className="resume-preview">{text}</pre>
         <h3>Application approval</h3>
         <p>{draft.approved_revision === draft.revision ? 'Approved for applications' :
