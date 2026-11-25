@@ -25,18 +25,20 @@ def _answer(question, skills, examples):
     return NEEDS_INPUT
 
 
-def generate_content(master: Master | None, posting: dict, questions: list[str]) -> dict:
+def generate_content(master: Master | None, posting: dict, questions: list[str],
+                     selected: dict[str, set[str]] | None = None) -> dict:
     """Use posting words to select verified facts. Only master entries supply personal claims."""
     context = f"{posting['title']}\n{posting.get('description') or ''}"
     aliases = {alias.casefold(): names for names in ALIASES.values() for alias in names}
+    selected = selected or {}
     matched = {}
     for skill in (master.skills if master else []):
         names = aliases.get(skill.casefold(), (skill,))
-        if any(contains(context, name) for name in names):
+        if skill in selected.get("skills", ()) or any(contains(context, name) for name in names):
             matched[skill] = names
     terms = {term for names in matched.values() for term in names}
     examples = {section: [fact for fact in getattr(master, section, [])
-                          if any(contains(fact, term) for term in terms)]
+                          if fact in selected.get(section, ()) or any(contains(fact, term) for term in terms)]
                 for section in ("projects", "experience", "achievements")}
     paragraphs = ["Dear hiring team,",
                   f"I am applying for the {posting['title']} position at {posting['company']}."]
