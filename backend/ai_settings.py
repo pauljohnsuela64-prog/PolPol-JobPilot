@@ -9,7 +9,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from builder import private_request
+from local_access import private_request
 from database import database
 
 router = APIRouter(prefix="/ai", dependencies=[Depends(private_request)])

@@ -1,27 +1,23 @@
-﻿import os
-
-import pytest
 from fastapi.testclient import TestClient
 
 from main import app, database
 
 
 def test_health():
-    response = TestClient(app).get("/health")
+    response = TestClient(app, base_url="http://localhost").get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
 def test_invalid_job():
-    response = TestClient(app).post("/api/jobs", json={"title": " ", "company": "Example"})
+    response = TestClient(app, base_url="http://localhost").post("/api/jobs", json={"title": " ", "company": "Example"})
     assert response.status_code == 422
 
 
-@pytest.mark.skipif(not os.getenv("DATABASE_URL"), reason="Requires an initialized test database")
-def test_application_workflow():
+def test_application_workflow(test_database):
     from uuid import uuid4
 
-    client = TestClient(app)
+    client = TestClient(app, base_url="http://localhost")
     title = f"Developer {uuid4()}"
     job = client.post("/api/jobs", json={"title": title, "company": "Example"})
     assert job.status_code == 201

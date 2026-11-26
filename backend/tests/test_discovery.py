@@ -137,7 +137,7 @@ def test_rate_limit_blocks_subsequent_refresh_without_another_request():
     ("lever", "../example"),
 ])
 def test_discovery_source_validates_provider_and_board(provider, board):
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://localhost") as client:
         response = client.post("/api/discovery/sources", json={
             "provider": provider, "board": board, "company": "Example",
         })
@@ -145,7 +145,7 @@ def test_discovery_source_validates_provider_and_board(provider, board):
 
 
 def test_discovery_blocks_foreign_browser_origin():
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://localhost") as client:
         assert client.post("/api/discovery/refresh", headers={"Origin": "https://unrelated.example"}).status_code == 403
 
 
@@ -178,10 +178,8 @@ def test_missing_and_uncertain_evidence_stays_visible():
 
 
 @pytest.fixture
-def migration_database(monkeypatch):
-    url = os.getenv("JOBPILOT_TEST_DATABASE_URL")
-    if not url:
-        pytest.skip("Set JOBPILOT_TEST_DATABASE_URL to a disposable PostgreSQL database")
+def migration_database(monkeypatch, test_database):
+    url = test_database
     name = "discovery_" + uuid4().hex
     with psycopg.connect(url, autocommit=True) as admin:
         admin.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(name)))
@@ -195,7 +193,7 @@ def migration_database(monkeypatch):
 
 def test_refresh_save_and_migration_preserve_previous_data(migration_database, monkeypatch):
     backend = Path(__file__).resolve().parents[1]
-    with psycopg.connect(migration_database, autocommit=True) as connection, TestClient(app) as client:
+    with psycopg.connect(migration_database, autocommit=True) as connection, TestClient(app, base_url="http://localhost") as client:
         for file in ("schema.sql", "migrations/002_profile.sql"):
             connection.execute((backend / file).read_text())
         job = client.post("/api/jobs", json={"title": "Existing", "company": "Old Co"}).json()
@@ -307,7 +305,7 @@ def test_compatibility_weights_aliases_and_unverified_skills():
 
 def test_ranking_before_pagination_and_profile_changes(migration_database):
     backend = Path(__file__).resolve().parents[1]
-    with psycopg.connect(migration_database, autocommit=True) as db, TestClient(app) as client:
+    with psycopg.connect(migration_database, autocommit=True) as db, TestClient(app, base_url="http://localhost") as client:
         for file in ("schema.sql", "migrations/002_profile.sql", "migrations/003_discovery.sql"):
             db.execute((backend / file).read_text())
         source = client.post("/api/discovery/sources", json={"provider": "lever", "board": "sample", "company": "Fixture"}).json()

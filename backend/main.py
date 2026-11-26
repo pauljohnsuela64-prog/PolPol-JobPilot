@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 import psycopg
-from fastapi import FastAPI, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Path, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, StringConstraints
 
@@ -12,6 +12,7 @@ from assistant_routes import EXTENSION_ORIGIN, router as assistant_router
 from builder import router as builder_router
 from database import database, track_job
 from discovery_routes import router as discovery_router
+from local_access import private_request
 from preparation_routes import router as preparation_router
 from profile_routes import router as profile_router
 from queue_routes import router as queue_router
@@ -38,8 +39,8 @@ async def assistant_privacy(request: Request, call_next):
     if request.url.path.startswith("/api/assistant/"):
         response.headers["Cache-Control"] = "no-store"
         if (request.url.path.startswith("/api/assistant/extension/")
-                and request.headers.get("host") == "127.0.0.1:8000"
-                and request.headers.get("origin") == EXTENSION_ORIGIN):
+                and request.headers.getlist("host") == ["127.0.0.1:8000"]
+                and request.headers.getlist("origin") == [EXTENSION_ORIGIN]):
             response.headers["Access-Control-Allow-Origin"] = EXTENSION_ORIGIN
             response.headers["Vary"] = "Origin"
     return response
@@ -76,7 +77,10 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/api/jobs", response_model=list[TrackedJob])
+jobs = APIRouter(dependencies=[Depends(private_request)])
+
+
+@jobs.get("/api/jobs", response_model=list[TrackedJob])
 def list_jobs():
     with database() as connection:
         return connection.execute(
@@ -88,12 +92,12 @@ def list_jobs():
         ).fetchall()
 
 
-@app.post("/api/jobs", response_model=TrackedJob, status_code=201)
+@jobs.post("/api/jobs", response_model=TrackedJob, status_code=201)
 def create_job(job: NewJob):
     with database() as connection:
         return track_job(connection, job.title, job.company, job.location)
 
-@app.patch("/api/jobs/{job_id}", response_model=TrackedJob)
+@jobs.patch("/api/jobs/{job_id}", response_model=TrackedJob)
 def change_stage(job_id: JobId, application: ApplicationUpdate):
     # Updating and returning the joined record in one statement avoids a second read.
     with database() as connection:
@@ -108,3 +112,6 @@ def change_stage(job_id: JobId, application: ApplicationUpdate):
         if row is None:
             raise HTTPException(404, "Job not found.")
         return row
+
+
+app.include_router(jobs)

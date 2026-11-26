@@ -71,16 +71,36 @@ Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in Edge. Choose **Dashboard*
 
 ## Run the checks
 
-From the project folder, run the backend tests and frontend production build.
+Run tests from the project folder in a separate PowerShell terminal. Leave `JOBPILOT_TEST_DATABASE_URL` unset for database-independent tests. Pytest ignores the normal application connection and skips database-writing tests until you explicitly supply a disposable target.
+
+For the full suite, use a separate local PostgreSQL test server. This example assumes it listens on port 55439 and has a non-superuser login named `tester`. Provide credentials through PostgreSQL's private password file. Create a fresh database owned by the test login and apply the schema before invoking pytest.
+
+```powershell
+$bin = 'C:\Program Files\PostgreSQL\18\bin'
+& "$bin\createdb.exe" -h 127.0.0.1 -p 55439 -U postgres -O tester jobpilot_test
+if ($LASTEXITCODE) { throw 'Expected a new disposable database.' }
+$env:JOBPILOT_TEST_DATABASE_URL = 'postgresql://tester@127.0.0.1:55439/jobpilot_test'
+$files = @('.\backend\schema.sql') + @(Get-ChildItem .\backend\migrations\*.sql | Sort-Object Name | ForEach-Object FullName)
+foreach ($file in $files) {
+    & "$bin\psql.exe" -X -d $env:JOBPILOT_TEST_DATABASE_URL -v ON_ERROR_STOP=1 -f $file
+    if ($LASTEXITCODE) { throw "Migration failed for $file" }
+}
+```
+
+Use a numeric loopback address, explicit user and port, and a lowercase database name ending in `_test` distinct from your application database. Port 5433 is reserved for the persistent install. Omit query parameters and leave the normal `DATABASE_URL` alone. Tests use temporary resume storage.
 
 ```powershell
 Set-Location backend
 ..\.venv\Scripts\python.exe -m pytest -q
-Set-Location ..\frontend
+Set-Location ..
+node --test tests/companion.test.mjs
+Set-Location frontend
 npm.cmd run build
 ```
 
-The health and validation tests run without PostgreSQL. To run the full workflows, create a disposable test database owned by `jobpilot`. Apply all SQL scripts to it as shown above, using the test database name. Set `DATABASE_URL` to the test connection string and then run `$env:JOBPILOT_TEST_DATABASE_URL = $env:DATABASE_URL` in the same terminal before pytest. The integration tests write preferences and resume metadata, so use a separate database from your real profile.
+Keep FastAPI and Vite bound to loopback. Private API routes check the local Host and browser origin. The companion uses its pinned extension origin and exact API address for handoffs. Local processes can supply their own headers, so these checks require a trusted computer.
+
+For a manual release check, start FastAPI with the disposable database and a separate temporary `JOBPILOT_RESUME_DIR` outside the repository. In Edge, open Dashboard, Profile, and Discovery through Vite. Create a synthetic job and save synthetic preferences, then reload both screens. Follow the Phase 10 checklist below and verify that filling an approved field leaves the queue entry Ready until you explicitly record your own submission.
 
 ## Discover and save jobs
 

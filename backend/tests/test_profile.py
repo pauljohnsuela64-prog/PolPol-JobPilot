@@ -1,5 +1,4 @@
 ﻿import io
-import os
 from urllib.parse import quote
 
 import pytest
@@ -11,16 +10,8 @@ from main import app
 
 @pytest.fixture
 def client():
-    with TestClient(app) as test_client:
+    with TestClient(app, base_url="http://localhost") as test_client:
         yield test_client
-
-
-@pytest.fixture
-def profile_database(monkeypatch):
-    url = os.getenv("JOBPILOT_TEST_DATABASE_URL")
-    if not url:
-        pytest.skip("Set JOBPILOT_TEST_DATABASE_URL to a disposable, migrated database")
-    monkeypatch.setenv("DATABASE_URL", url)
 
 
 def upload(client, content, name="resume.pdf"):
@@ -44,7 +35,7 @@ def test_rejects_invalid_preferences(client):
     assert client.put("/api/profile/preferences", json={"minimum_salary_php": -1}).status_code == 422
 
 
-def test_preferences_saved_across_connections(client, profile_database):
+def test_preferences_saved_across_connections(client, test_database):
     preferences = {
         "job_titles": ["Junior Developer", "QA Engineer"],
         "locations": ["Manila", "Cebu"],
@@ -54,11 +45,11 @@ def test_preferences_saved_across_connections(client, profile_database):
         "technical_skills": ["Python", "PostgreSQL"],
     }
     assert client.put("/api/profile/preferences", json=preferences).json() == preferences
-    with TestClient(app) as fresh_client:
+    with TestClient(app, base_url="http://localhost") as fresh_client:
         assert fresh_client.get("/api/profile").json()["preferences"] == preferences
 
 
-def test_replace_and_delete_resume(client, profile_database, monkeypatch, tmp_path):
+def test_replace_and_delete_resume(client, test_database, monkeypatch, tmp_path):
     monkeypatch.setenv("JOBPILOT_RESUME_DIR", str(tmp_path))
     writer = PdfWriter()
     writer.add_blank_page(width=100, height=100)

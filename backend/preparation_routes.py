@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Response
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
-from builder import Master, private_request
+from local_access import private_request
+from builder import Master
 from database import database
 from preparation_content import export_content, generate_content
 
