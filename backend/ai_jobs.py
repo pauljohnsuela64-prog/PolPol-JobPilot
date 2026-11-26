@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
 from ai_settings import LocalAIError, infer
-from builder import Master, SECTIONS, private_request, tailor
+from local_access import private_request
+from builder import Master, SECTIONS, tailor
 from database import database
 from job_matching import compatibility, contains
 from job_providers import Posting

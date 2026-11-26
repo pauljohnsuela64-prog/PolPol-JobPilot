@@ -1,4 +1,4 @@
-﻿"""Reviewed, revision-bound handoffs for the local synthetic application form."""
+"""Reviewed, revision-bound handoffs for the local synthetic application form."""
 import hashlib
 import json
 import re
@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import Field, StrictBool, StringConstraints
 
-from builder import private_request
+from local_access import private_request
 from database import database
 from preparation_content import NEEDS_INPUT
 from preparation_routes import Id, Input
@@ -25,8 +25,8 @@ Revision = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
 
 
 def extension_request(request: Request):
-    if (request.headers.get("host") != "127.0.0.1:8000"
-            or request.headers.get("origin") != EXTENSION_ORIGIN):
+    if (request.headers.getlist("host") != ["127.0.0.1:8000"]
+            or request.headers.getlist("origin") != [EXTENSION_ORIGIN]):
         raise HTTPException(403, "Use the JobPilot companion extension.")
     if request.method == "POST" and request.headers.get("content-type", "").split(";")[0] != "application/json":
         raise HTTPException(415, "Send a JSON request.")

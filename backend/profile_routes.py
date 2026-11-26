@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 from urllib.parse import unquote
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Header, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from pypdf import PdfReader
@@ -15,8 +15,9 @@ from pypdf.errors import PyPdfError
 from starlette.concurrency import run_in_threadpool
 
 from database import database
+from local_access import private_request
 
-router = APIRouter(prefix="/api/profile")
+router = APIRouter(prefix="/api/profile", dependencies=[Depends(private_request)])
 logger = logging.getLogger(__name__)
 MAX_RESUME_BYTES = 5 * 1024 * 1024
 PreferenceItem = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]

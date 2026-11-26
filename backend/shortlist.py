@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from builder import private_request
+from local_access import private_request
 from database import database
 from job_matching import Match, compare, compatibility
 from job_providers import Arrangement, Posting, Provider, safe_posting_url

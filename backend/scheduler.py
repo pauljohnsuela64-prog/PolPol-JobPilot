@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
-from builder import private_request
+from local_access import private_request
 from database import database
 from discovery_routes import fetch_enabled_boards
 from shortlist import after_refresh

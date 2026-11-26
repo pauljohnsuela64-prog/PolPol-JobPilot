@@ -1,26 +1,20 @@
 from itertools import islice
 
 import heapq
-import re
 from typing import Annotated, Literal
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, StringConstraints
 
+from local_access import private_request
 from database import database, track_job
 from job_matching import Match, compare, compatibility
 from job_providers import BOARD_PATTERN, HOSTS, FeedError, FeedRateLimit, Posting, Provider, fetch_board
 from profile_routes import Preferences
 
-def check_browser_origin(request: Request):
-    origin = request.headers.get("origin")
-    if origin is not None and not re.fullmatch(r"http://(?:127\.0\.0\.1|localhost|\[::1\])(?::[0-9]{1,5})?", origin):
-        raise HTTPException(403, "Open JobPilot from your local browser address.")
-
-
-router = APIRouter(prefix="/api/discovery", dependencies=[Depends(check_browser_origin)])
+router = APIRouter(prefix="/api/discovery", dependencies=[Depends(private_request)])
 RecordId = Annotated[int, Path(ge=1, le=2_147_483_647)]
 
 

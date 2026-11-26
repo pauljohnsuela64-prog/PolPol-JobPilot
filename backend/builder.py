@@ -8,7 +8,7 @@ from xml.sax.saxutils import escape
 
 from docx import Document
 from docx.shared import Pt
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from reportlab.lib.styles import getSampleStyleSheet
@@ -20,19 +20,8 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate
 from database import database
 from job_matching import ALIASES, compare, compatibility, contains
 from job_providers import Posting
+from local_access import private_request
 from profile_routes import Preferences
-
-
-def private_request(request: Request):
-    origin = request.headers.get("origin")
-    # Vite can rewrite Host to the API port. Browser-controlled fetch metadata
-    # still identifies a same-origin request to the loopback frontend.
-    proxied = (request.headers.get("sec-fetch-site") == "same-origin" and origin
-               and re.fullmatch(r"http://(?:127\.0\.0\.1|localhost|\[::1\])(?::[0-9]{1,5})?", origin))
-    if (request.url.hostname not in {"127.0.0.1", "localhost", "::1"}
-            or request.headers.get("sec-fetch-site") in {"cross-site", "same-site"}
-            or (origin and not proxied and origin != f"http://{request.headers.get('host')}")):
-        raise HTTPException(403, "Use the local JobPilot window.")
 
 
 router = APIRouter(prefix="/api/builder", dependencies=[Depends(private_request)])

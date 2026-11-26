@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StrictBool, StringConstraints, field_validator
 
-from builder import private_request
+from local_access import private_request
 from database import database, track_job
 from job_providers import safe_posting_url
 
