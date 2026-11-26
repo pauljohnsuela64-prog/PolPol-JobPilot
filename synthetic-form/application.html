@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Practice application · PolPol JobPilot</title>
+  <link rel="stylesheet" href="form.css">
+</head>
+<body>
+<main>
+  <h1>Practice application</h1>
+  <p>This local employer form lets you try the JobPilot companion. Entries last only on this page. Open the extension in the Edge toolbar to preview your fields.</p>
+  <form id="jobpilot-practice-v1" autocomplete="off">
+    <fieldset><legend>Contact</legend>
+      <label for="full_name">Full name</label><input id="full_name" name="full_name" type="text">
+      <label for="email">Email</label><input id="email" name="email" type="email">
+      <label for="phone">Phone</label><input id="phone" name="phone" type="tel">
+    </fieldset>
+    <fieldset><legend>Background</legend>
+      <label for="experience">Experience</label><textarea id="experience" name="experience"></textarea>
+      <label for="education">Education</label><textarea id="education" name="education"></textarea>
+    </fieldset>
+    <fieldset><legend>Screening questions</legend>
+      <label for="skills">What are your relevant skills?</label><textarea id="skills" name="skills"></textarea>
+      <label for="project">Describe a relevant project.</label><textarea id="project" name="project"></textarea>
+      <label for="notes">Additional comments</label><textarea id="notes" name="notes"></textarea>
+    </fieldset>
+  </form>
+</main>
+</body>
+</html>

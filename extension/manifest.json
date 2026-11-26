@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "PolPol Application Assistant",
+  "version": "1.0.0",
+  "description": "Preview and fill reviewed JobPilot fields on the local practice application.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAybqyv5Ao04EyuVUGLee1CkrJB+POKnFhMbxJr9mvoVefZ25Qj9ik/+Tspq9tXOrwB9NeXU052fFh9mdoUebpPLxkoR2Cj2Meout5j7pn0k/pJU1T3RlXL/uC3wm4OHt0/omWdw0x4JkJSQ37x0lkd9ZiC3UmosdpGnhkY5cfy4kc6wM32m+hyMMGaK/JZuOjUqQ08H0ts/g03DQhMvSy2E6LmQsBrtrZOmjUKWdDIRaIsDH6aDjnaWA9CJbCVAEb3Jcrws4Wn6Z0nPhqdW29KCO0F+uLZUi0iHEetC5lZPfoSKLqLjEHxy9Jx7bdDs8x8hVdq1sPY3uMwWvWXodfwwIDAQAB",
+  "permissions": ["activeTab", "scripting"],
+  "action": {"default_popup": "popup.html", "default_title": "Review application fields"},
+  "content_security_policy": {
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; connect-src http://127.0.0.1:8000; base-uri 'none'; form-action 'none'; object-src 'none'"
+  }
+}

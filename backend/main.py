@@ -8,6 +8,7 @@ from pydantic import BaseModel, StringConstraints
 
 from ai_jobs import router as ai_jobs_router
 from ai_settings import router as ai_settings_router
+from assistant_routes import EXTENSION_ORIGIN, router as assistant_router
 from builder import router as builder_router
 from database import database, track_job
 from discovery_routes import router as discovery_router
@@ -21,6 +22,7 @@ from shortlist import router as shortlist_router
 app = FastAPI(lifespan=lifespan, title="PolPol JobPilot", docs_url=None, redoc_url=None)
 app.include_router(ai_settings_router, prefix="/api")
 app.include_router(ai_jobs_router)
+app.include_router(assistant_router)
 app.include_router(schedule_router)
 app.include_router(shortlist_router)
 app.include_router(builder_router)
@@ -28,6 +30,19 @@ app.include_router(preparation_router)
 app.include_router(profile_router)
 app.include_router(discovery_router)
 app.include_router(queue_router)
+
+
+@app.middleware("http")
+async def assistant_privacy(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/assistant/"):
+        response.headers["Cache-Control"] = "no-store"
+        if (request.url.path.startswith("/api/assistant/extension/")
+                and request.headers.get("host") == "127.0.0.1:8000"
+                and request.headers.get("origin") == EXTENSION_ORIGIN):
+            response.headers["Access-Control-Allow-Origin"] = EXTENSION_ORIGIN
+            response.headers["Vary"] = "Origin"
+    return response
 
 RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 OptionalText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)]

@@ -1,0 +1,12 @@
+:root { font: 15px/1.45 system-ui, sans-serif; color: #182d38; background: #fafcfc; }
+body { width: 340px; margin: 0; }
+main { padding: 16px; }
+h1 { font-size: 1.4rem; margin: 0 0 1rem; }
+h2 { font-size: 1.1rem; }
+label { display: block; font-weight: 600; }
+input[type=password], button { box-sizing: border-box; width: 100%; font: inherit; padding: .6rem; border: 1px solid #536f79; border-radius: .3rem; margin: .3rem 0; }
+button { background: #145968; color: white; cursor: pointer; }
+button:disabled { background: #e0e6e7; color: #45535b; cursor: default; }
+.field { padding: .65rem 0; border-top: 1px solid #c5d3d5; }
+.value { margin: .25rem 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+small { display: block; }
