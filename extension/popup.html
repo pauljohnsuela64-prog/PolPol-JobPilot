@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>JobPilot field review</title>
+<link rel="stylesheet" href="popup.css"><script type="module" src="popup.mjs"></script></head>
+<body><main>
+  <h1>Review application fields</h1>
+  <form id="authorize">
+    <label for="code">One-time code from JobPilot</label>
+    <input id="code" type="password" autocomplete="off" required spellcheck="false" maxlength="96">
+    <button>Preview fields</button>
+  </form>
+  <section id="review" hidden>
+    <h2 id="opening"></h2><p>Select the fields to fill on the local practice application.</p>
+    <div id="fields"></div>
+    <button id="fill" disabled>Confirm and fill selected fields</button>
+  </section>
+  <p id="status" role="status"></p><button id="retry" hidden>Retry activity record</button>
+</main></body></html>

@@ -1,3 +1,4 @@
+import { ApplicationAssistant } from './ApplicationAssistant';
 import { AISettings } from './AI';
 import { Builder } from './Builder';
 import { ApplicationQueue } from './ApplicationQueue';
@@ -168,19 +169,20 @@ function App() {
         <div className="wrap bar">
           <div className="brand"><span className="mark" aria-hidden="true">P</span> PolPol <span>JobPilot</span></div>
           <nav className="navigation" aria-label="Main navigation">
-            <a href="#dashboard" aria-current={!route.startsWith('#builder') && !route.startsWith('#preparation') && !route.startsWith('#queue') && route !== '#profile' && route !== '#discovery' && route !== '#shortlist' && route !== '#ai-settings' ? 'page' : undefined}>Dashboard</a>
+            <a href="#dashboard" aria-current={!route.startsWith('#assistant') && !route.startsWith('#builder') && !route.startsWith('#preparation') && !route.startsWith('#queue') && route !== '#profile' && route !== '#discovery' && route !== '#shortlist' && route !== '#ai-settings' ? 'page' : undefined}>Dashboard</a>
             <a href="#profile" aria-current={route === '#profile' ? 'page' : undefined}>Profile / Preferences</a>
             <a href="#discovery" aria-current={route === '#discovery' ? 'page' : undefined}>Job Discovery</a>
             <a href="#shortlist" aria-current={route === '#shortlist' ? 'page' : undefined}>Smart Shortlist</a>
             <a href="#builder" aria-current={route.startsWith('#builder') ? 'page' : undefined}>Resume Builder</a>
             <a href="#preparation" aria-current={route.startsWith('#preparation') ? 'page' : undefined}>Application Prep</a>
             <a href="#queue" aria-current={route.startsWith('#queue') ? 'page' : undefined}>Application Queue</a>
+            <a href="#assistant" aria-current={route.startsWith('#assistant') ? 'page' : undefined}>Application Assistant</a>
             <a href="#ai-settings" aria-current={route === '#ai-settings' ? 'page' : undefined}>AI Settings</a>
           </nav>
           <span className="local">Local workspace</span>
         </div>
       </header>
-      {route === '#ai-settings' ? <AISettings /> : route === '#shortlist' ? <SmartShortlist /> : route.startsWith('#queue') ? <ApplicationQueue key={route} initial={route.split('/')[1] || ''} /> : route.startsWith('#preparation') ? <Preparation key={route} initial={Number(route.split('/')[1]) || 0} /> : route.startsWith('#builder') ? <Builder key={route} initial={Number(route.split('/')[1]) || 0} /> : route === '#discovery' ? <Discovery /> : route === '#profile' ? <Profile /> : <Dashboard />}
+      {route.startsWith('#assistant') ? <ApplicationAssistant key={route} listing={Number(route.split('/')[1]) || 0} /> : route === '#ai-settings' ? <AISettings /> : route === '#shortlist' ? <SmartShortlist /> : route.startsWith('#queue') ? <ApplicationQueue key={route} initial={route.split('/')[1] || ''} /> : route.startsWith('#preparation') ? <Preparation key={route} initial={Number(route.split('/')[1]) || 0} /> : route.startsWith('#builder') ? <Builder key={route} initial={Number(route.split('/')[1]) || 0} /> : route === '#discovery' ? <Discovery /> : route === '#profile' ? <Profile /> : <Dashboard />}
     </>
   );
 }

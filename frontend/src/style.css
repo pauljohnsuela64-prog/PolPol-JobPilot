@@ -194,3 +194,14 @@ button:disabled, select:disabled { opacity: .65; cursor: default; }
 .ai-comparison { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
 .ai-comparison .resume-preview { max-height: 24rem; overflow: auto; }
 @media (max-width: 740px) { .ai-comparison { grid-template-columns: minmax(0,1fr); } }
+.assistant-review { max-width: 56rem; overflow-wrap: anywhere; }
+.assistant-review .discovery-card-head, .assistant-review > button, .assistant-review .success, .assistant-handoff { margin-top: 12px; }
+.assistant-review h3 { margin: 22px 0 6px; }
+.assistant-fields { list-style: none; padding: 0; }
+.assistant-fields li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; border-top: 1px solid var(--border); padding-block: 14px; }
+.assistant-fields h4 { margin: 0 0 4px; }
+.assistant-fields small, .assistant-activity small { color: var(--muted); }
+.assistant-value { white-space: pre-wrap; color: inherit; }
+.assistant-activity { padding-left: 1.5rem; }
+.assistant-activity li { margin-block: 9px; }
+.assistant-activity small { display: block; }

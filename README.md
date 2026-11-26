@@ -37,6 +37,7 @@ From the project folder, run the schema and migrations in order against the same
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\008_shortlist.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\009_ai_settings.sql
 & $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\009_ai_suggestions.sql
+& $psql -h 127.0.0.1 -U jobpilot -d jobpilot -v ON_ERROR_STOP=1 -f .\backend\migrations\010_application_assistant.sql
 ```
 
 ### Start the API
@@ -296,3 +297,37 @@ The model selects evidence by identifier. The backend resolves accepted identifi
 3. Create a Resume Builder draft and an Application Preparation draft. Include a technical-skills question and a salary or availability question. Generate an assisted suggestion for each. Compare the saved and proposed versions, dismiss one, and reopen the draft to verify its content and approval.
 4. Apply a reviewed suggestion that changes content. Reopen the draft, check the revision history, and confirm it needs approval again. Open the same draft in two tabs, change it in one, and try applying the older preview in the other.
 5. Stop Ollama and request assistance. Check the fallback label, generate a rule-based draft, and verify that reviewing, editing, and exporting still follow the existing approval flow. Repeat the comparison on a narrow mobile viewport.
+
+## Phase 10 — Authorized Application Assistant
+
+The assistant turns a Ready job into a field-by-field package. It rechecks the current resume approval, the latest approved preparation packet, and existing duplicate warnings. The optional Edge companion fills the bundled practice form. For other forms, review and copy individual values from the workspace.
+
+### Windows setup
+
+1. Back up the existing database as described under Phase 6. For an installation already on Phase 9, run the single `010_application_assistant.sql` command under **Set up PostgreSQL**. This additive migration creates handoff and activity tables. Start FastAPI and Vite as usual. Ollama is optional.
+2. From the project root, start the practice form in a separate PowerShell window. Serve only the synthetic-form directory. Open the exact address `http://127.0.0.1:4179/application.html` in desktop Microsoft Edge.
+
+   ```powershell
+   .\.venv\Scripts\python.exe -m http.server 4179 --bind 127.0.0.1 --directory .\synthetic-form
+   ```
+
+3. In `edge://extensions`, turn on **Developer mode**, choose **Load unpacked**, and select the project's `extension` folder containing `manifest.json`. Its ID should be `ienannceaienjfffohgjidcfcmjfnlki`. The companion expects FastAPI at `http://127.0.0.1:8000`. [Microsoft Edge installation instructions](https://learn.microsoft.com/en-us/microsoft-edge/extensions/getting-started/extension-sideloading)
+
+### Review, fill and copy
+
+Open **Application Assistant**, or follow the assistant link from a Ready queue entry. Contact details, education and experience must appear in both the verified master and the approved resume. Ambiguous contact values and missing answers appear as **Needs your input.** The approved preparation packet supplies the cover letter and reviewed screening answers. Review the proposed values and check the confirmation box.
+
+For manual entry, choose **Copy** beside a supported value and paste it yourself into the intended field. Use manual selection if clipboard access is unavailable. For the practice form, choose **Create handoff code**, open the practice tab, invoke the Edge extension from its toolbar, paste the code, and choose **Preview fields**. Select individual fields and choose **Confirm and fill selected fields**. A new code replaces any earlier unclaimed code for that job. Each code expires in five minutes and authorizes one fill attempt.
+
+The companion supports empty full-name, email, phone, experience and education fields, plus the exact reviewed questions “What are your relevant skills?” and “Describe a relevant project.” Cover letters and other reviewed questions are available for manual copy. The companion has temporary access to the active tab after invocation, checks the exact practice URL, and rechecks the document and field identities before writing. It skips unsupported, changed, occupied, hidden and sensitive controls. Real employer sites require a separately verified mapping and authorization before browser filling can be enabled. [Chromium activeTab permission](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab)
+
+The code goes into the extension popup. Keep it out of page fields, URLs and messages. The backend stores hashes of the short-lived credentials. The popup contacts only the fixed loopback API and passes only selected values to the practice document. Activity records show preparation, copy requests, fill authorizations and reported field counts. If the popup closes before it reports a result, the authorization can appear without a completed fill. Review activity in the assistant or on the queue entry after its status changes. Recording an actual submission remains a separate, explicit Application Queue action.
+
+### Manual acceptance tests
+
+1. In a disposable installation, create a synthetic master resume with an email, experience and education. Generate and approve a tailored resume. Attach that revision to a preparation packet with a supported skills question and a salary question, review it, and approve the packet.
+2. Open the Ready job in the assistant. Confirm the evidence labels and unresolved salary answer. Copy one supported value after review. Check that the queue still reports Ready and has no submission record.
+3. In the practice tab, use the extension to preview a fresh code. Confirm the page is still empty. Select just email and fill it. Confirm only email changed, check **Refresh activity**, and try the same code again.
+4. With another code, try a different tab or add a query string to the practice URL. Try editing a populated field and previewing again. The companion should refuse the wrong page and skip existing values.
+5. Generate another code and edit the approved preparation document before filling. Check that the handoff fails and the queue requests approval again. Restore readiness, then verify the manual copy path for a reviewed question outside the synthetic mapping.
+6. Run the backend tests as described under **Run the checks** using a disposable PostgreSQL database. Run `node --test tests/companion.test.mjs` from the project root, then `npm.cmd run build` from `frontend`.

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState, type FormEvent } from 'react';
 import { request } from './api';
+import { QueueAssistantActivity } from './ApplicationAssistant';
 
 const states = { draft: 'Draft', ready: 'Ready', submitted: 'Submitted', follow_up: 'Follow-up' };
 type State = keyof typeof states;
@@ -118,7 +119,9 @@ function QueueDetail({ row, onSaved }: { row: Row; onSaved: (r: Row) => void }) 
     </dl>
     {row.readiness_reason && <p>{row.readiness_reason}</p>}
     {row.listing_id && <div className="queue-links"><a href={'#builder/' + row.listing_id}>Review resume</a><a href={'#preparation/' + row.listing_id}>Review preparation materials</a></div>}
+    {row.state === 'ready' && !row.duplicate_warning && row.listing_id && <p><a href={'#assistant/' + row.listing_id}>Review fields in Application Assistant</a></p>}
     <h3>Submission record</h3>
+    {row.listing_id && <QueueAssistantActivity key={row.listing_id} listing={row.listing_id} />}
     {latest ? <EntryDetails entry={latest} /> : <p>No confirmed submission recorded.</p>}
     {status && <p role="status" className="success">{status}</p>}
     {editing ? <Confirmation key={latest?.id || row.key} row={row} onCancel={() => setEditing(false)} onReload={async () => {

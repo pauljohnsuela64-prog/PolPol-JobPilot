@@ -1,0 +1,7 @@
+:root { font: 16px/1.5 system-ui, sans-serif; color: #162e38; background: #f1f5f5; }
+main { max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+fieldset { margin: 1.4rem 0; padding: 1.25rem; background: white; border: 1px solid #a0b4b8; border-radius: .5rem; }
+legend { font-weight: 700; }
+label { display: block; margin-top: .75rem; }
+input, textarea { box-sizing: border-box; width: 100%; font: inherit; padding: .55rem; border: 1px solid #718a92; border-radius: .25rem; }
+textarea { min-height: 5rem; }
